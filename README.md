@@ -29,10 +29,10 @@ Shopping | poi_shopping
 University (polygon) | boundary_university
 
 ## BikeSpot 2023
-Positive Spots (Safe)
-Negative Spots (Unsafe)
+Positive Spots (Safe) | poi_bikespot
+Negative Spots (Unsafe) | poi_bikespot
 
 ## Accessibility
-Park within catchment
-Mesh blocks with school connectivity (primary)
-Mesh blocks wiht school connectivity (secondary)
+Park within catchment | catchment
+Mesh blocks with school connectivity (primary) |
+Mesh blocks wiht school connectivity (secondary) | 

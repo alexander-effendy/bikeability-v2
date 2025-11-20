@@ -4,7 +4,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { useAtom } from "jotai"
 import { Eye, EyeOff } from "lucide-react"
 
-const TechnicalNetworkLayers = () => {
+const TechnicalBikeSpot = () => {
   const [layerActive, setLayerActive] = useAtom<string | null>(activeLayerAtom);
   const toggleLayer = (layerName: string) => {
     if (layerActive === layerName) {
@@ -17,10 +17,25 @@ const TechnicalNetworkLayers = () => {
     <div className="flex flex-col">
       {/* Header */}
       <div className="h-10 border-b border-foreground flex items-center p-4">
-        Current Cycling Conditions
+        BikeSpot 2023
       </div>
 
-      <div className="p-4 flex flex-col gap-4">
+      <section className="p-4 text-sm text-muted-foreground">
+  <span>
+    BikeSpot is a digital mapping campaign that allows every Australian to say
+    where they feel safe or unsafe while riding their bike. Learn more at{" "}
+    <a
+      href="https://bikespot.org"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline text-blue-600 dark:text-blue-300 hover:text-blue-800"
+    >
+      bikespot.org
+    </a>.
+  </span>
+</section>
+
+      <div className="p-4 flex flex-col gap-4 pt-0">
         <Accordion type="single" defaultValue="item-1" className="border border-foreground">
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger
@@ -28,18 +43,18 @@ const TechnicalNetworkLayers = () => {
             >
               {/* LEFT: Title */}
               <div className="flex items-center gap-2">
-                <span>Road Network</span>
+                <span>Positive Spots (Safe)</span>
               </div>
 
               {/* RIGHT: Eye Icon (controlled by layerActive) */}
               <span
                 onClick={() => {
-                  toggleLayer('road-network')
+                  toggleLayer('bikespot-safe')
                   // e.stopPropagation();     // prevent accordion toggle
                 }}
                 className="cursor-pointer"
               >
-                {layerActive === 'road-network' ? (
+                {layerActive === 'bikespot-safe' ? (
                   <Eye className="size-5" />
                 ) : (
                   <EyeOff className="size-5" />
@@ -49,7 +64,7 @@ const TechnicalNetworkLayers = () => {
 
             <AccordionContent className="mt-5">
               <span className="text-muted-foreground">
-                The whole road network throughout the state.
+                Safe spots
               </span>
             </AccordionContent>
           </AccordionItem>
@@ -62,18 +77,18 @@ const TechnicalNetworkLayers = () => {
             >
               {/* LEFT: Title */}
               <div className="flex items-center gap-2">
-                <span>Existing Cycling Infrastructure</span>
+                <span>Negative Spots (Unsafe)</span>
               </div>
 
               {/* RIGHT: Eye Icon (controlled by layerActive) */}
               <span
                 onClick={() => {
-                  toggleLayer('existing-cycling-infrastructure')
+                  toggleLayer('bikespot-unsafe')
                   // e.stopPropagation();     // prevent accordion toggle
                 }}
                 className="cursor-pointer"
               >
-                {layerActive === 'existing-cycling-infrastructure' ? (
+                {layerActive === 'bikespot-unsafe' ? (
                   <Eye className="size-5" />
                 ) : (
                   <EyeOff className="size-5" />
@@ -83,41 +98,7 @@ const TechnicalNetworkLayers = () => {
 
             <AccordionContent className="mt-5">
               <span className="text-muted-foreground">
-                Cycling Infrastructure that has been built prior to our GIS year.
-              </span>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-
-        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
-          <AccordionItem value="item-1" className="p-4">
-            <AccordionTrigger
-              className="flex justify-between [&>svg]:hidden items-center"
-            >
-              {/* LEFT: Title */}
-              <div className="flex items-center gap-2">
-                <span>Cycleway Network Connectivity</span>
-              </div>
-
-              {/* RIGHT: Eye Icon (controlled by layerActive) */}
-              <span
-                onClick={() => {
-                  toggleLayer('cycleway-network-connectivity')
-                  // e.stopPropagation();     // prevent accordion toggle
-                }}
-                className="cursor-pointer"
-              >
-                {layerActive === 'cycleway-network-connectivity' ? (
-                  <Eye className="size-5" />
-                ) : (
-                  <EyeOff className="size-5" />
-                )}
-              </span>
-            </AccordionTrigger>
-
-            <AccordionContent className="mt-5">
-              <span className="text-muted-foreground">
-                Different colours distinguish disconnected islands. Crossing between colours requires a longer distance than the set distance limit.
+                Unsafe spots
               </span>
             </AccordionContent>
           </AccordionItem>
@@ -128,4 +109,4 @@ const TechnicalNetworkLayers = () => {
   )
 }
 
-export default TechnicalNetworkLayers
+export default TechnicalBikeSpot;

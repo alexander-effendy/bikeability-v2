@@ -4,7 +4,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { useAtom } from "jotai"
 import { Eye, EyeOff } from "lucide-react"
 
-const TechnicalCurrentCyclingConditions = () => {
+const TechnicalDensity = () => {
   const [layerActive, setLayerActive] = useAtom<string | null>(activeLayerAtom);
   const toggleLayer = (layerName: string) => {
     if (layerActive === layerName) {
@@ -17,12 +17,10 @@ const TechnicalCurrentCyclingConditions = () => {
     <div className="flex flex-col">
       {/* Header */}
       <div className="h-10 border-b border-foreground flex items-center p-4">
-        Current Cycling Conditions
+        Density
       </div>
 
       <div className="p-4 flex flex-col gap-4">
-
-
         <Accordion type="single" defaultValue="item-1" className="border border-foreground">
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger
@@ -30,18 +28,18 @@ const TechnicalCurrentCyclingConditions = () => {
             >
               {/* LEFT: Title */}
               <div className="flex items-center gap-2">
-                <span>Cycling Metrics</span>
+                <span>Population Density</span>
               </div>
 
               {/* RIGHT: Eye Icon (controlled by layerActive) */}
               <span
                 onClick={() => {
-                  toggleLayer('cycling-metrics')
+                  toggleLayer('population-density')
                   // e.stopPropagation();     // prevent accordion toggle
                 }}
                 className="cursor-pointer"
               >
-                {layerActive === 'cycling-metrics' ? (
+                {layerActive === 'population-density' ? (
                   <Eye className="size-5" />
                 ) : (
                   <EyeOff className="size-5" />
@@ -51,7 +49,7 @@ const TechnicalCurrentCyclingConditions = () => {
 
             <AccordionContent className="mt-5">
               <span className="text-muted-foreground">
-                Percentage of residents cycling for various purposes. This percentage is produced based on a cycling survey (2025).
+                Number of residents per square kilometre.
               </span>
             </AccordionContent>
           </AccordionItem>
@@ -64,18 +62,18 @@ const TechnicalCurrentCyclingConditions = () => {
             >
               {/* LEFT: Title */}
               <div className="flex items-center gap-2">
-                <span>Severe Cycling Crashes</span>
+                <span>Job Density by SA2</span>
               </div>
 
               {/* RIGHT: Eye Icon (controlled by layerActive) */}
               <span
                 onClick={() => {
-                  toggleLayer('severe-cycling-crashes')
+                  toggleLayer('job-density')
                   // e.stopPropagation();     // prevent accordion toggle
                 }}
                 className="cursor-pointer"
               >
-                {layerActive === 'severe-cycling-crashes' ? (
+                {layerActive === 'job-density' ? (
                   <Eye className="size-5" />
                 ) : (
                   <EyeOff className="size-5" />
@@ -85,7 +83,7 @@ const TechnicalCurrentCyclingConditions = () => {
 
             <AccordionContent className="mt-5">
               <span className="text-muted-foreground">
-                Crashes involving cyclists reported to police (2019 - 2023).
+                Number of jobs per square kilometre.
               </span>
             </AccordionContent>
           </AccordionItem>
@@ -96,4 +94,4 @@ const TechnicalCurrentCyclingConditions = () => {
   )
 }
 
-export default TechnicalCurrentCyclingConditions
+export default TechnicalDensity;

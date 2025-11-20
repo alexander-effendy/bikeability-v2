@@ -60,10 +60,14 @@ const CityCombobox: React.FC = () => {
                   setActiveCity(option.value);
                   setOpen(false);
                 }}
+                style={{
+                  fontFamily:
+                    "Space Mono, Inconsolata, Menlo, Monaco, Consolas, 'Courier New', Courier, monospace",
+                }}
               >
                 <Check
                   className={cn(
-                    "mr-2 h-4 w-4", 
+                    "mr-2 h-4 w-4",
                     activeCity === option.value ? "opacity-100" : "opacity-0"
                   )}
                 />

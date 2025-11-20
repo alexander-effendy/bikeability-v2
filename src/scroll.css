@@ -1,0 +1,27 @@
+.soft-scrollbar-right > * {
+  direction: ltr;
+  text-align: left;
+}
+
+.soft-scrollbar-right::-webkit-scrollbar {
+  width: 3px;
+}
+
+/* === Light mode scrollbars === */
+.soft-scrollbar-right::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 1, 0.4);
+  border-radius: 30px;
+}
+
+.soft-scrollbar-right::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* === Dark mode scrollbars === */
+.dark .soft-scrollbar-right::-webkit-scrollbar-thumb {
+  background-color: rgba(142, 120, 120, 0.6); /* white-ish */
+}
+
+.dark .soft-scrollbar-right::-webkit-scrollbar-track {
+  background: transparent;
+}

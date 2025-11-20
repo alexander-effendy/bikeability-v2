@@ -4,7 +4,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { useAtom } from "jotai"
 import { Eye, EyeOff } from "lucide-react"
 
-const TechnicalCurrentCyclingConditions = () => {
+const TechnicalNetworkLayers = () => {
   const [layerActive, setLayerActive] = useAtom<string | null>(activeLayerAtom);
   const toggleLayer = (layerName: string) => {
     if (layerActive === layerName) {
@@ -17,12 +17,10 @@ const TechnicalCurrentCyclingConditions = () => {
     <div className="flex flex-col">
       {/* Header */}
       <div className="h-10 border-b border-foreground flex items-center p-4">
-        Current Cycling Conditions
+        Network Layers
       </div>
 
       <div className="p-4 flex flex-col gap-4">
-
-
         <Accordion type="single" defaultValue="item-1" className="border border-foreground">
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger
@@ -30,18 +28,18 @@ const TechnicalCurrentCyclingConditions = () => {
             >
               {/* LEFT: Title */}
               <div className="flex items-center gap-2">
-                <span>Cycling Metrics</span>
+                <span>Road Network</span>
               </div>
 
               {/* RIGHT: Eye Icon (controlled by layerActive) */}
               <span
                 onClick={() => {
-                  toggleLayer('cycling-metrics')
+                  toggleLayer('road-network')
                   // e.stopPropagation();     // prevent accordion toggle
                 }}
                 className="cursor-pointer"
               >
-                {layerActive === 'cycling-metrics' ? (
+                {layerActive === 'road-network' ? (
                   <Eye className="size-5" />
                 ) : (
                   <EyeOff className="size-5" />
@@ -51,7 +49,7 @@ const TechnicalCurrentCyclingConditions = () => {
 
             <AccordionContent className="mt-5">
               <span className="text-muted-foreground">
-                Percentage of residents cycling for various purposes. This percentage is produced based on a cycling survey (2025).
+                The whole road network throughout the state.
               </span>
             </AccordionContent>
           </AccordionItem>
@@ -64,18 +62,18 @@ const TechnicalCurrentCyclingConditions = () => {
             >
               {/* LEFT: Title */}
               <div className="flex items-center gap-2">
-                <span>Severe Cycling Crashes</span>
+                <span>Existing Cycling Infrastructure</span>
               </div>
 
               {/* RIGHT: Eye Icon (controlled by layerActive) */}
               <span
                 onClick={() => {
-                  toggleLayer('severe-cycling-crashes')
+                  toggleLayer('existing-cycling-infrastructure')
                   // e.stopPropagation();     // prevent accordion toggle
                 }}
                 className="cursor-pointer"
               >
-                {layerActive === 'severe-cycling-crashes' ? (
+                {layerActive === 'existing-cycling-infrastructure' ? (
                   <Eye className="size-5" />
                 ) : (
                   <EyeOff className="size-5" />
@@ -85,7 +83,41 @@ const TechnicalCurrentCyclingConditions = () => {
 
             <AccordionContent className="mt-5">
               <span className="text-muted-foreground">
-                Crashes involving cyclists reported to police (2019 - 2023).
+                Cycling Infrastructure that has been built prior to our GIS year.
+              </span>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
+          <AccordionItem value="item-1" className="p-4">
+            <AccordionTrigger
+              className="flex justify-between [&>svg]:hidden items-center"
+            >
+              {/* LEFT: Title */}
+              <div className="flex items-center gap-2">
+                <span>Cycleway Network Connectivity</span>
+              </div>
+
+              {/* RIGHT: Eye Icon (controlled by layerActive) */}
+              <span
+                onClick={() => {
+                  toggleLayer('cycleway-network-connectivity')
+                  // e.stopPropagation();     // prevent accordion toggle
+                }}
+                className="cursor-pointer"
+              >
+                {layerActive === 'cycleway-network-connectivity' ? (
+                  <Eye className="size-5" />
+                ) : (
+                  <EyeOff className="size-5" />
+                )}
+              </span>
+            </AccordionTrigger>
+
+            <AccordionContent className="mt-5">
+              <span className="text-muted-foreground">
+                Different colours distinguish disconnected portions of the cycleway network. Crossing between disconnected portions requires a longer distance than the set distance limit.
               </span>
             </AccordionContent>
           </AccordionItem>
@@ -96,4 +128,4 @@ const TechnicalCurrentCyclingConditions = () => {
   )
 }
 
-export default TechnicalCurrentCyclingConditions
+export default TechnicalNetworkLayers

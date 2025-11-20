@@ -1,21 +1,20 @@
-// ensureBoundaryLgaLayer.ts
-import maplibregl from "maplibre-gl";
-import type { MapLayerMouseEvent } from "maplibre-gl";
+// src/features/map/layers/ensureJobDensityLayer.ts
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
-// All cities that have *_boundary_lga tiles
+// All cities that have *_job_density_sa2 tiles
 const CITY_LIST: CityId[] = ["sydney", "melbourne", "brisbane", "perth"];
 
-// Common column names (adjust if different per city)
-const VALUE_FIELD = "index_value";
-const LGA_ID_FIELD = "lga_code21";
-const LGA_NAME_FIELD = "lga_name21";
+// Columns – tweak if schema differs
+const VALUE_FIELD = "job_den";      // job density
+const SA2_ID_FIELD = "sa2_code21";  // adjust if different
+const SA2_NAME_FIELD = "sa2_name21";
 
 // Build ids for a given city
 const getIdsForCity = (city: CityId) => {
-  const sourceId = `${city}_boundary_lga`;
+  const sourceId = `${city}_job_density_sa2`;
   return {
     sourceId,
     fillLayerId: `${sourceId}-fill`,
@@ -23,7 +22,7 @@ const getIdsForCity = (city: CityId) => {
   };
 };
 
-// Find first symbol layer to insert underneath labels
+// Reuse helper: find first symbol layer to insert below labels
 const getFirstSymbolLayerId = (map: maplibregl.Map): string | undefined => {
   const style = map.getStyle();
   if (!style?.layers) return undefined;
@@ -33,10 +32,9 @@ const getFirstSymbolLayerId = (map: maplibregl.Map): string | undefined => {
   return undefined;
 };
 
-export const removeBoundaryLgaLayer = (map: maplibregl.Map) => {
+export const removeJobDensityLayer = (map: maplibregl.Map) => {
   const anyMap = map as any;
 
-  // Remove all city LGA layers/sources
   for (const city of CITY_LIST) {
     const { sourceId, fillLayerId, outlineLayerId } = getIdsForCity(city);
     if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
@@ -44,50 +42,56 @@ export const removeBoundaryLgaLayer = (map: maplibregl.Map) => {
     if (map.getSource(sourceId)) map.removeSource(sourceId);
   }
 
-  // Just hide the tooltip if it exists; keep the element & handlers
-  if (anyMap._lgaHoverEl) {
-    anyMap._lgaHoverEl.style.display = "none";
+  if (anyMap._jobHoverEl) {
+    anyMap._jobHoverEl.remove();
+    anyMap._jobHoverEl = undefined;
   }
-
-  // NOTE: do NOT reset _lgaHoverBound / _lgaClickBound here,
-  // otherwise you'll re-attach handlers endlessly.
-  // anyMap._lgaHoverBound = false;
-  // anyMap._lgaClickBound = false;
+  anyMap._jobHoverBound = false;
+  anyMap._jobClickBound = false;
 };
 
-// --- color ramp 0.15 – 0.55+ ---
-
-const baseFillForLga = (): any => {
+// --- color ramp for job_den ---
+// Example values: 0, 0.127, 2.279, 3.086, 10, 17, etc
+// Buckets (you can tweak later):
+//   0 – 0.1
+//   0.1 – 0.5
+//   0.5 – 1
+//   1 – 2
+//   2 – 4
+//   4 – 8
+//   8 – 16
+//   16+
+const baseFillForJobDensity = (): any => {
   return [
     "step",
     ["to-number", ["get", VALUE_FIELD], 0],
-    "#eff6ff", // < 0.15 or 0
-    0.15,
-    "#dbeafe", // 0.15 – 0.25
-    0.25,
-    "#bfdbfe", // 0.25 – 0.35
-    0.35,
-    "#93c5fd", // 0.35 – 0.45
-    0.45,
-    "#60a5fa", // 0.45 – 0.55
-    0.55,
-    "#1d4ed8", // 0.55+
+
+    // 0 – 0.1
+    "#fefce8",
+    0.1, "#fef9c3",   // 0.1 – 0.5
+    0.5, "#fef08a",   // 0.5 – 1
+    1, "#fde047",   // 1 – 2
+    2, "#facc15",   // 2 – 4
+    4, "#eab308",   // 4 – 8
+    8, "#ca8a04",   // 8 – 16
+    16, "#854d0e"    // 16+
   ];
 };
 
 const fillColorWithHover = (): any => [
   "case",
   ["boolean", ["feature-state", "hover"], false],
-  "#ffcc00",
-  baseFillForLga(),
+  "#22c55e", // hover highlight (green)
+  baseFillForJobDensity(),
 ];
 
-// --- main helper ---
-
-export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
+export const ensureJobDensityLayer = (
+  map: maplibregl.Map,
+  city: CityId
+) => {
   if (!map.isStyleLoaded()) {
     map.once("style.load", () => {
-      ensureBoundaryLgaLayer(map, city);
+      ensureJobDensityLayer(map, city);
     });
     return;
   }
@@ -101,7 +105,7 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
     map.addSource(sourceId, {
       type: "vector",
       url: `${MARTIN_BASE_URL}/${sourceId}`,
-      promoteId: LGA_ID_FIELD,
+      promoteId: SA2_ID_FIELD,
     } as maplibregl.VectorSourceSpecification);
   }
 
@@ -117,7 +121,7 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
         "source-layer": sourceId,
         paint: {
           "fill-color": fillColorExpr,
-          "fill-opacity": 0.7,
+          "fill-opacity": 0.75,
         },
       },
       beforeId || undefined
@@ -135,26 +139,25 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
         source: sourceId,
         "source-layer": sourceId,
         paint: {
-          "line-color": "#111111",
-          "line-width": 0.4,
-          "line-opacity": 0.8,
+          "line-color": "#111827",
+          "line-width": 0.3,
+          "line-opacity": 0.7,
         },
       },
       beforeId || undefined
     );
   }
 
-  // 4) Hover label (once per map – but works for ALL city layers)
-  if (!anyMap._lgaHoverBound) {
+  // 4) Hover label (once per map, across all cities)
+  if (!anyMap._jobHoverBound) {
     let hoveredId: string | number | null = null;
     let hoveredSourceId: string | null = null;
 
-    // Tooltip element
     const container = map.getContainer();
-    let hoverEl = anyMap._lgaHoverEl as HTMLDivElement | undefined;
+    let hoverEl = anyMap._jobHoverEl as HTMLDivElement | undefined;
     if (!hoverEl) {
       hoverEl = document.createElement("div");
-      hoverEl.className = "city-lga-hover-label";
+      hoverEl.className = "sa2-job-hover-label";
       hoverEl.style.position = "absolute";
       hoverEl.style.pointerEvents = "none";
       hoverEl.style.padding = "4px 8px";
@@ -168,7 +171,7 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
       hoverEl.style.display = "none";
       hoverEl.style.color = "#111";
       container.appendChild(hoverEl);
-      anyMap._lgaHoverEl = hoverEl;
+      anyMap._jobHoverEl = hoverEl;
     }
 
     // Attach layer-specific handlers for ALL city layers
@@ -186,11 +189,11 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
 
           const id =
             feature.id ??
-            (LGA_ID_FIELD
-              ? (feature.properties?.[LGA_ID_FIELD] as
-                  | string
-                  | number
-                  | undefined)
+            (SA2_ID_FIELD
+              ? (feature.properties?.[SA2_ID_FIELD] as
+                | string
+                | number
+                | undefined)
               : undefined);
           if (id == null) return;
 
@@ -223,8 +226,8 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
           );
 
           const name =
-            (LGA_NAME_FIELD &&
-              (feature.properties?.[LGA_NAME_FIELD] as string | undefined)) ??
+            (SA2_NAME_FIELD &&
+              (feature.properties?.[SA2_NAME_FIELD] as string | undefined)) ??
             (feature.properties?.name as string | undefined) ??
             "N/A";
 
@@ -236,11 +239,11 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
           }
 
           hoverEl!.innerHTML = `
-            <div>${String(name)}</div>
-            <div style="font-weight:400;">
-              ${VALUE_FIELD}: ${labelValue}
-            </div>
-          `;
+                    <div>${String(name)}</div>
+                    <div style="font-weight:400;">
+                      ${VALUE_FIELD}: ${labelValue}
+                    </div>
+                  `;
 
           const { x, y } = e.point;
           hoverEl!.style.left = `${x + 10}px`;
@@ -270,11 +273,11 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
       });
     }
 
-    anyMap._lgaHoverBound = true;
+    anyMap._jobHoverBound = true;
   }
 
   // 5) Click logging (once per map, per city layer)
-  if (!anyMap._lgaClickBound) {
+  if (!anyMap._jobClickBound) {
     for (const c of CITY_LIST) {
       const { fillLayerId: cityFillId } = getIdsForCity(c);
 
@@ -284,15 +287,15 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
         (e: MapLayerMouseEvent) => {
           const feature = e.features?.[0];
           if (!feature) return;
-          console.log("City LGA click:", {
-            city: c,
-            layerId: feature.layer.id,
-            props: feature.properties,
-          });
+          console.log(
+            "Job density SA2 click:",
+            feature.layer.id,
+            feature.properties
+          );
         }
       );
     }
 
-    anyMap._lgaClickBound = true;
+    anyMap._jobClickBound = true;
   }
 };

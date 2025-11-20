@@ -9,7 +9,7 @@ import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useAtom, useAtomValue } from "jotai";
 import { darkModeAtom, type CityId } from "@/atoms/GeneralAtom";
-import { activeLayerAtom } from "@/atoms/LayerAtom";
+import { activeLayerAtom, catchmentTypeAtom, catchmentMinsAtom } from "@/atoms/LayerAtom";
 import { activeCityAtom } from "@/atoms/GeneralAtom";
 
 import {
@@ -35,6 +35,17 @@ import {
 
 import { CITY_VIEWS } from "./utils/MapLocations";
 import CityCombobox from "../combobox/CityCombobox";
+import { ensurePopulationDensityLayer, removePopulationDensityLayer } from "./layers/density/ensurePopulationDensityLayer";
+import { ensureJobDensityLayer, removeJobDensityLayer } from "./layers/density/ensureJobDensityLayer";
+import { ensurePoiSchoolLayer, removePoiSchoolLayer } from "./layers/poi/ensurePoiSchools";
+import { ensurePoiServiceLayer, removePoiServiceLayer } from "./layers/poi/ensurePoiService";
+import { ensurePoiTransitLayer, removePoiTransitLayer } from "./layers/poi/ensurePoiTransit";
+import { ensurePoiShoppingLayer, removePoiShoppingLayer } from "./layers/poi/ensurePoiShopping";
+import { ensureBoundaryUniversityLayer, removeBoundaryUniversityLayer } from "./layers/poi/ensureUniversityPolygon";
+import { ensureBoundaryParkLayer, removeBoundaryParkLayer } from "./layers/poi/ensureParkPolygon";
+import { ensureBikespotSafeLayer, removeBikespotSafeLayer } from "./layers/bikespot/ensureBikespotSafe";
+import { ensureBikespotUnsafeLayer, removeBikespotUnsafeLayer } from "./layers/bikespot/ensureBikespotUnsafe";
+import { ensureCatchmentLayer, removeCatchmentLayer } from "./layers/accessibility/ensureCatchmentLayer";
 type Theme = "dark" | "light";
 
 interface MapProps {
@@ -65,7 +76,10 @@ const Map: React.FC<MapProps> = ({
 
   const isDark = useAtomValue<boolean>(darkModeAtom);
   const [activeLayer] = useAtom<string | null>(activeLayerAtom);
+
   const activeCity = useAtomValue<CityId>(activeCityAtom);
+  const catchmentType = useAtomValue<string>(catchmentTypeAtom);
+  const catchmentMins = useAtomValue<number>(catchmentMinsAtom);
 
   // Compute style URL for current dark/light
   const styleUrlForTheme = useMemo(
@@ -81,6 +95,17 @@ const Map: React.FC<MapProps> = ({
       removeRoadNetworkLayer(map);
       removeExistingCyclingLayer(map);
       removeNetworkIslandLayer(map);
+      removePopulationDensityLayer(map);
+      removeJobDensityLayer(map);
+      removePoiSchoolLayer(map);
+      removePoiServiceLayer(map);
+      removePoiTransitLayer(map);
+      removePoiShoppingLayer(map);
+      removeBoundaryUniversityLayer(map);
+      removeBoundaryParkLayer(map);
+      removeBikespotSafeLayer(map);
+      removeBikespotUnsafeLayer(map);
+      removeCatchmentLayer(map);
       switch (activeLayer) {
         case "cycling-metrics":
           ensureBoundaryLgaLayer(map, activeCity);
@@ -97,11 +122,67 @@ const Map: React.FC<MapProps> = ({
         case "cycleway-network-connectivity":
           ensureNetworkIslandLayer(map, activeCity);
           break;
+        case "population-density": {
+          ensurePopulationDensityLayer(map, activeCity);
+          break;
+        }
+        case "job-density": {
+          ensureJobDensityLayer(map, activeCity);
+          break;
+        }
+        case "poi-schools": {
+          const city = activeCity ?? "sydney";
+          ensurePoiSchoolLayer(map, city);
+          break;
+        }
+        case "poi-service": {
+          const city = activeCity ?? "sydney";
+          ensurePoiServiceLayer(map, city);
+          break;
+        }
+        case "poi-transit": {
+          const city = activeCity ?? "sydney";
+          ensurePoiTransitLayer(map, city);
+          break;
+        }
+        case "poi-shopping": {
+          const city = activeCity ?? "sydney";
+          ensurePoiShoppingLayer(map, city);
+          break;
+        }
+        case "university-polygon": {
+          const city = activeCity ?? "sydney";
+          ensureBoundaryUniversityLayer(map, city);
+          break;
+        }
+        case "park-polygon": {
+          const city = activeCity ?? "sydney";
+          ensureBoundaryParkLayer(map, city);
+          break;
+        }
+        case "bikespot-safe": {
+          const city = activeCity ?? "sydney";
+          ensureBikespotSafeLayer(map, city);
+          break;
+        }
+        case "bikespot-unsafe": {
+          const city = activeCity ?? "sydney";
+          ensureBikespotUnsafeLayer(map, city);
+          break;
+        }
+        case "catchment": {
+          const city = activeCity ?? "sydney";
+          const type = catchmentType ?? "park";
+          const mins = catchmentMins ?? "5";
+          console.log(city, type, mins)
+          ensureCatchmentLayer(map, city, type, mins);
+          break;
+        }
         default:
           break;
       }
     },
-    [activeLayer, activeCity]
+    [activeLayer, activeCity, catchmentType, catchmentMins]
   );
 
   // 1️⃣ Init map once

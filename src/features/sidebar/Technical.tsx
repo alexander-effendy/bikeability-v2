@@ -1,7 +1,7 @@
 import { technicalActiveAtom } from "@/atoms/GeneralAtom";
 import { Button } from "@/components/ui/button";
 import { useAtom } from "jotai";
-
+import { Bike, Accessibility } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
@@ -9,17 +9,21 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 
-import TechnicalMapTiles from "./TechnicalMapTiles";
+// import TechnicalMapTiles from "./TechnicalMapTiles";
 import TechnicalCurrentCyclingConditions from "./TechnicalCurrentCyclingConditions";
-import TechnicalNetworkLayers from "./TechnicalNetworkLayers";
+import TechnicalNetworkLayers from "./TechnicalNetwork";
 import MapComponent from "../map/Map";
+import TechnicalDensity from "./TechnicalDensity";
+import TechnicalPoi from "./TechnicalPoi";
+import TechnicalBikeSpot from "./TechnicalBikeSpot";
+import TechnicalAccessibility from "./TechnicalAccessibility";
 
 const Technical = () => {
   const [technicalActive, setTechnicalActive] = useAtom(technicalActiveAtom);
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      
+
       {/* LEFT ICONS BAR */}
       <TooltipProvider delayDuration={200}>
         <div className="w-10 flex flex-col items-center border-r border-foreground gap-2 py-2 shrink-0">
@@ -52,29 +56,85 @@ const Technical = () => {
               <p>Road Networks</p>
             </TooltipContent>
           </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="w-full p-2 hover:opacity-80"
+                onClick={() => setTechnicalActive("density")}
+              >
+                <DensityIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Density</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="w-full p-2 hover:opacity-80"
+                onClick={() => setTechnicalActive("poi")}
+              >
+                <PointIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>POI</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="w-full p-2 hover:opacity-80"
+                onClick={() => setTechnicalActive("bikespot")}
+              >
+                <Bike />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>BikeSpot 2023</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="w-full p-2 hover:opacity-80"
+                onClick={() => setTechnicalActive("accessibility")}
+              >
+                <Accessibility />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Accessibility</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </TooltipProvider>
 
       {/* RIGHT SIDEBAR CONTENT */}
-      <div className="w-100 border-r border-foreground overflow-auto shrink-0">
-        {technicalActive === "maptiles" && <TechnicalMapTiles />}
-        {technicalActive === "current-cycling-conditions" && (
-          <TechnicalCurrentCyclingConditions />
-        )}
+      <div className="w-100 border-r border-foreground">
+        {/* {technicalActive === "maptiles" && <TechnicalMapTiles />} */}
+        {technicalActive === "current-cycling-conditions" && <TechnicalCurrentCyclingConditions />}
         {technicalActive === "road-networks" && <TechnicalNetworkLayers />}
+        {technicalActive === "density" && <TechnicalDensity />}
+        {technicalActive === "poi" && <TechnicalPoi />}
+        {technicalActive === "bikespot" && <TechnicalBikeSpot />}
+        {technicalActive === "accessibility" && <TechnicalAccessibility />}
       </div>
 
       {/* MAP AREA */}
       <div className="flex-1 overflow-hidden p-4">
-        <MapComponent className="border border-foreground"/>
+        <MapComponent className="border border-foreground" />
       </div>
     </div>
   );
 };
 
 export default Technical;
-
-
 
 // ICONS
 const ConditionsIcon = () => (
@@ -106,3 +166,11 @@ const NetworkIcon = () => (
     />
   </svg>
 );
+
+const DensityIcon = () => (
+  <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path d="M20 5H4v2h16V5zm0 4H4v2h16V9zM4 13h16v2H4v-2zm16 4H4v2h16v-2z" fill="currentColor"/> </svg>
+)
+
+const PointIcon = () => (
+  <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"> <path d="M7 2h10v2H7V2zM5 6V4h2v2H5zm0 8H3V6h2v8zm2 2H5v-2h2v2zm2 2H7v-2h2v2zm2 2H9v-2h2v2zm2 0v2h-2v-2h2zm2-2v2h-2v-2h2zm2-2v2h-2v-2h2zm2-2v2h-2v-2h2zm0-8h2v8h-2V6zm0 0V4h-2v2h2zm-5 2h-4v4h4V8z" fill="currentColor"/> </svg>
+)
