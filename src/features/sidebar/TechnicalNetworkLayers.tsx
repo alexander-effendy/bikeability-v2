@@ -88,6 +88,40 @@ const TechnicalNetworkLayers = () => {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
+
+        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
+          <AccordionItem value="item-1" className="p-4">
+            <AccordionTrigger
+              className="flex justify-between [&>svg]:hidden items-center"
+            >
+              {/* LEFT: Title */}
+              <div className="flex items-center gap-2">
+                <span>Cycleway Network Connectivity</span>
+              </div>
+
+              {/* RIGHT: Eye Icon (controlled by layerActive) */}
+              <span
+                onClick={() => {
+                  toggleLayer('cycleway-network-connectivity')
+                  // e.stopPropagation();     // prevent accordion toggle
+                }}
+                className="cursor-pointer"
+              >
+                {layerActive === 'cycleway-network-connectivity' ? (
+                  <Eye className="size-5" />
+                ) : (
+                  <EyeOff className="size-5" />
+                )}
+              </span>
+            </AccordionTrigger>
+
+            <AccordionContent className="mt-5">
+              <span className="text-muted-foreground">
+                Different colours distinguish disconnected islands. Crossing between colours requires a longer distance than the set distance limit.
+              </span>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
 
     </div>
