@@ -1,5 +1,5 @@
 // src/features/map/layers/ensureRoadNetworkLayer.ts
-import maplibregl from "maplibre-gl";
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
 import type { LegendItem } from "../../layersLegend/LegendInfo";
 
@@ -13,7 +13,8 @@ const getIdsForCity = (city: CityId) => {
   const sourceId = `${city}_network_all`;
   return {
     sourceId,
-    layerId: `${sourceId}-line`,
+    visibleLayerId: `${sourceId}-line`,
+    hitLayerId: `${sourceId}-hit`,   // 👈 invisible buffer layer id
   };
 };
 
@@ -32,9 +33,16 @@ export const removeRoadNetworkLayer = (map: maplibregl.Map) => {
 
   // Remove all city road network layers/sources
   for (const city of CITY_LIST) {
-    const { sourceId, layerId } = getIdsForCity(city);
-    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    const { sourceId, visibleLayerId, hitLayerId } = getIdsForCity(city);
+    if (map.getLayer(hitLayerId)) map.removeLayer(hitLayerId);       // remove hit layer
+    if (map.getLayer(visibleLayerId)) map.removeLayer(visibleLayerId);
     if (map.getSource(sourceId)) map.removeSource(sourceId);
+  }
+
+  // Clean up hover tooltip
+  if (anyMap._roadHoverEl) {
+    anyMap._roadHoverEl.remove();
+    anyMap._roadHoverEl = undefined;
   }
 
   anyMap._roadNetworkEventsBound = false;
@@ -48,7 +56,7 @@ export const ensureRoadNetworkLayer = (map: maplibregl.Map, city: CityId) => {
     return;
   }
 
-  const { sourceId, layerId } = getIdsForCity(city);
+  const { sourceId, visibleLayerId, hitLayerId } = getIdsForCity(city);
   const beforeId = getFirstSymbolLayerId(map);
   const anyMap = map as any;
 
@@ -60,11 +68,11 @@ export const ensureRoadNetworkLayer = (map: maplibregl.Map, city: CityId) => {
     } as maplibregl.VectorSourceSpecification);
   }
 
-  // 2) Line layer (simple gray network)
-  if (!map.getLayer(layerId)) {
+  // 2) Visible line layer (what you actually see)
+  if (!map.getLayer(visibleLayerId)) {
     map.addLayer(
       {
-        id: layerId,
+        id: visibleLayerId,
         type: "line",
         source: sourceId,
         "source-layer": sourceId,
@@ -82,20 +90,86 @@ export const ensureRoadNetworkLayer = (map: maplibregl.Map, city: CityId) => {
     );
   }
 
-  // 3) Optional simple interactivity – bind once for *all* city layers
+  // 3) Invisible "hit" layer = the buffer 🎯
+  //
+  // This is the BUFFER: big line-width, opacity 0, used only for events.
+  if (!map.getLayer(hitLayerId)) {
+    map.addLayer(
+      {
+        id: hitLayerId,
+        type: "line",
+        source: sourceId,
+        "source-layer": sourceId,
+        paint: {
+          "line-color": "#000000", // doesn't matter, it's invisible
+          "line-width": 5,        // 👈 increase this for bigger buffer
+          "line-opacity": 0,       // fully transparent
+        },
+        layout: {
+          "line-cap": "round",
+          "line-join": "round",
+        },
+      },
+      beforeId || undefined
+    );
+  }
+
+  // 4) Interactivity (hover tooltip + click log) – bind once for *all* city layers
   if (!anyMap._roadNetworkEventsBound) {
+    const container = map.getContainer();
+    let hoverEl = anyMap._roadHoverEl as HTMLDivElement | undefined;
+
+    if (!hoverEl) {
+      hoverEl = document.createElement("div");
+      hoverEl.className = "road-network-hover-label";
+      hoverEl.style.position = "absolute";
+      hoverEl.style.pointerEvents = "none";
+      hoverEl.style.padding = "4px 8px";
+      hoverEl.style.background = "rgba(255,255,255,0.95)";
+      hoverEl.style.border = "1px solid rgba(0,0,0,0.1)";
+      hoverEl.style.borderRadius = "6px";
+      hoverEl.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+      hoverEl.style.font =
+        "600 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+      hoverEl.style.whiteSpace = "nowrap";
+      hoverEl.style.display = "none";
+      hoverEl.style.color = "#111";
+      container.appendChild(hoverEl);
+      anyMap._roadHoverEl = hoverEl;
+    }
+
     for (const c of CITY_LIST) {
-      const { layerId: lid } = getIdsForCity(c);
+      const { hitLayerId: hitId } = getIdsForCity(c);
 
-      map.on("mouseenter", lid, () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
+      // Use the HIT layer for interactions
+      map.on(
+        "mousemove",
+        hitId,
+        (e: MapLayerMouseEvent) => {
+          const feature = e.features?.[0];
+          if (!feature) return;
 
-      map.on("mouseleave", lid, () => {
+          const props = feature.properties ?? {};
+          const name =
+            (props["name"] as string | undefined)?.trim() || "Unnamed road";
+
+          hoverEl!.innerHTML = `<div>${name}</div>`;
+
+          const { x, y } = e.point;
+          hoverEl!.style.left = `${x + 10}px`;
+          hoverEl!.style.top = `${y + 10}px`;
+          hoverEl!.style.display = "block";
+
+          map.getCanvas().style.cursor = "pointer";
+        }
+      );
+
+      map.on("mouseleave", hitId, () => {
+        hoverEl!.style.display = "none";
         map.getCanvas().style.cursor = "";
       });
 
-      map.on("click", lid, (e) => {
+      map.on("click", hitId, (e) => {
         const feature = e.features?.[0];
         if (!feature) return;
         console.log("Road network click:", {
@@ -112,6 +186,6 @@ export const ensureRoadNetworkLayer = (map: maplibregl.Map, city: CityId) => {
 export const ROAD_NETWORK_LINE_LEGEND: LegendItem[] = [
   {
     label: "Road Network",
-    color: "#9ca3af",
+    color: "#9ca3af", // match visible line-color
   },
 ];

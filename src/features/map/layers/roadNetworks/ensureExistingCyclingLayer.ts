@@ -1,5 +1,5 @@
 // src/features/map/layers/ensureExistingCyclingLayer.ts
-import maplibregl from "maplibre-gl";
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
 import type { LegendItem } from "../../layersLegend/LegendInfo";
 
@@ -13,7 +13,8 @@ const getIdsForCity = (city: CityId) => {
   const sourceId = `${city}_network_cycling`;
   return {
     sourceId,
-    layerId: `${sourceId}-line`,
+    layerId: `${sourceId}-line`,   // visible line
+    hitLayerId: `${sourceId}-hit`, // invisible, fat hitbox
   };
 };
 
@@ -32,9 +33,15 @@ export const removeExistingCyclingLayer = (map: maplibregl.Map) => {
 
   // Remove all city cycling layers/sources
   for (const city of CITY_LIST) {
-    const { sourceId, layerId } = getIdsForCity(city);
+    const { sourceId, layerId, hitLayerId } = getIdsForCity(city);
+    if (map.getLayer(hitLayerId)) map.removeLayer(hitLayerId);
     if (map.getLayer(layerId)) map.removeLayer(layerId);
     if (map.getSource(sourceId)) map.removeSource(sourceId);
+  }
+
+  if (anyMap._existingCyclingHoverEl) {
+    anyMap._existingCyclingHoverEl.remove();
+    anyMap._existingCyclingHoverEl = undefined;
   }
 
   anyMap._existingCyclingEventsBound = false;
@@ -51,7 +58,7 @@ export const ensureExistingCyclingLayer = (
     return;
   }
 
-  const { sourceId, layerId } = getIdsForCity(city);
+  const { sourceId, layerId, hitLayerId } = getIdsForCity(city);
   const beforeId = getFirstSymbolLayerId(map);
   const anyMap = map as any;
 
@@ -63,15 +70,7 @@ export const ensureExistingCyclingLayer = (
     } as maplibregl.VectorSourceSpecification);
   }
 
-  // 2) Line layer with color by `facility`
-  //
-  // Distinct values expected:
-  //  - Other bike infrastructure
-  //  - Painted bicycle lane
-  //  - Shared path
-  //  - Separated/protected
-  //  - Associated bike infrastructure
-  //  - Shared zone/Quietway
+  // 2) Visible line layer with color by `facility`
   if (!map.getLayer(layerId)) {
     map.addLayer(
       {
@@ -110,20 +109,86 @@ export const ensureExistingCyclingLayer = (
     );
   }
 
-  // 3) Simple interactivity – bind once for all city layers
+  // 3) Invisible "hit" layer with big line-width for easy hover/click
+  if (!map.getLayer(hitLayerId)) {
+    map.addLayer(
+      {
+        id: hitLayerId,
+        type: "line",
+        source: sourceId,
+        "source-layer": sourceId,
+        paint: {
+          // fully transparent but still interactive
+          "line-color": "rgba(0,0,0,0)",
+          // this is your "buffer" – bump it up/down as you like
+          "line-width": 5,
+        },
+        layout: {
+          "line-cap": "round",
+          "line-join": "round",
+        },
+      },
+      // put it ABOVE the visible line (no beforeId) so it catches events
+    );
+  }
+
+  // 4) Interactivity – hover tooltip + cursor + click, bound once
   if (!anyMap._existingCyclingEventsBound) {
+    const container = map.getContainer();
+    let hoverEl = anyMap._existingCyclingHoverEl as HTMLDivElement | undefined;
+
+    if (!hoverEl) {
+      hoverEl = document.createElement("div");
+      hoverEl.className = "existing-cycling-hover-label";
+      hoverEl.style.position = "absolute";
+      hoverEl.style.pointerEvents = "none";
+      hoverEl.style.padding = "4px 8px";
+      hoverEl.style.background = "rgba(255,255,255,0.95)";
+      hoverEl.style.border = "1px solid rgba(0,0,0,0.1)";
+      hoverEl.style.borderRadius = "6px";
+      hoverEl.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+      hoverEl.style.font =
+        "600 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+      hoverEl.style.whiteSpace = "nowrap";
+      hoverEl.style.display = "none";
+      hoverEl.style.color = "#111";
+      container.appendChild(hoverEl);
+      anyMap._existingCyclingHoverEl = hoverEl;
+    }
+
     for (const c of CITY_LIST) {
-      const { layerId: lid } = getIdsForCity(c);
+      const { hitLayerId: hitId } = getIdsForCity(c);
 
-      map.on("mouseenter", lid, () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
+      // Hover on the *hit* layer
+      map.on(
+        "mousemove",
+        hitId,
+        (e: MapLayerMouseEvent) => {
+          const feature = e.features?.[0];
+          if (!feature) return;
 
-      map.on("mouseleave", lid, () => {
+          const facility =
+            (feature.properties?.facility as string | undefined)?.trim() ||
+            "Unknown facility";
+
+          hoverEl!.innerHTML = `<div>${facility}</div>`;
+
+          const { x, y } = e.point;
+          hoverEl!.style.left = `${x + 10}px`;
+          hoverEl!.style.top = `${y + 10}px`;
+          hoverEl!.style.display = "block";
+
+          map.getCanvas().style.cursor = "pointer";
+        }
+      );
+
+      map.on("mouseleave", hitId, () => {
+        hoverEl!.style.display = "none";
         map.getCanvas().style.cursor = "";
       });
 
-      map.on("click", lid, (e) => {
+      // Click on the *hit* layer too
+      map.on("click", hitId, (e) => {
         const feature = e.features?.[0];
         if (!feature) return;
         console.log("Existing cycling facility:", {

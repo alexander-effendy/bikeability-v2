@@ -1,5 +1,5 @@
 // src/features/map/layers/ensureBoundaryParkLayer.ts
-import maplibregl from "maplibre-gl";
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
 import type { LegendItem } from "../../layersLegend/LegendInfo";
 
@@ -37,6 +37,12 @@ export const removeBoundaryParkLayer = (map: maplibregl.Map) => {
     if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
     if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
     if (map.getSource(sourceId)) map.removeSource(sourceId);
+  }
+
+  // Remove hover tooltip if it exists
+  if (anyMap._boundaryParkHoverEl) {
+    anyMap._boundaryParkHoverEl.remove();
+    anyMap._boundaryParkHoverEl = undefined;
   }
 
   anyMap._boundaryParkEventsBound = false;
@@ -97,19 +103,61 @@ export const ensureBoundaryParkLayer = (map: maplibregl.Map, city: CityId) => {
     );
   }
 
-  // 4) Simple interactivity – bind once for all city layers
+  // 4) Hover + click interactivity – bind once for all city layers
   if (!anyMap._boundaryParkEventsBound) {
+    const container = map.getContainer();
+    let hoverEl = anyMap._boundaryParkHoverEl as HTMLDivElement | undefined;
+
+    if (!hoverEl) {
+      hoverEl = document.createElement("div");
+      hoverEl.className = "boundary-park-hover-label";
+      hoverEl.style.position = "absolute";
+      hoverEl.style.pointerEvents = "none";
+      hoverEl.style.padding = "4px 8px";
+      hoverEl.style.background = "rgba(255,255,255,0.95)";
+      hoverEl.style.border = "1px solid rgba(0,0,0,0.1)";
+      hoverEl.style.borderRadius = "6px";
+      hoverEl.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+      hoverEl.style.font =
+        "600 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+      hoverEl.style.whiteSpace = "nowrap";
+      hoverEl.style.display = "none";
+      hoverEl.style.color = "#111";
+      container.appendChild(hoverEl);
+      anyMap._boundaryParkHoverEl = hoverEl;
+    }
+
     for (const c of CITY_LIST) {
       const { fillLayerId: fid } = getIdsForCity(c);
 
-      map.on("mouseenter", fid, () => {
+      // Hover: show park name
+      map.on("mousemove", fid, (e: MapLayerMouseEvent) => {
+        const feature = e.features?.[0];
+        if (!feature) return;
+
+        const props = feature.properties ?? {};
+        const name =
+          (props["park_name"] as string | undefined)?.trim() ||
+          (props["name"] as string | undefined)?.trim() ||
+          "Park / open space";
+
+        hoverEl!.innerHTML = `<div>${name}</div>`;
+
+        const { x, y } = e.point;
+        hoverEl!.style.left = `${x + 10}px`;
+        hoverEl!.style.top = `${y + 10}px`;
+        hoverEl!.style.display = "block";
+
         map.getCanvas().style.cursor = "pointer";
       });
 
+      // Leave polygon: hide tooltip + reset cursor
       map.on("mouseleave", fid, () => {
+        hoverEl!.style.display = "none";
         map.getCanvas().style.cursor = "";
       });
 
+      // Click logging (kept from your original)
       map.on("click", fid, (e) => {
         const feature = e.features?.[0] as
           | maplibregl.MapGeoJSONFeature
@@ -130,6 +178,6 @@ export const ensureBoundaryParkLayer = (map: maplibregl.Map, city: CityId) => {
 export const PARK_POLYGON_LEGEND: LegendItem[] = [
   {
     label: "Parks",
-    color: "#22c55e", // match your fill-color in ensureBoundaryParkLayer
+    color: "#22c55e", // if you want this to match exactly, change to "#4ade80"
   },
 ];

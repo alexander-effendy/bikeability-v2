@@ -1,5 +1,5 @@
 // src/features/map/layers/ensurePoiTransitLayer.ts
-import maplibregl from "maplibre-gl";
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
 import type { LegendItem } from "../../layersLegend/LegendInfo";
 
@@ -37,6 +37,12 @@ export const removePoiTransitLayer = (map: maplibregl.Map) => {
     if (map.getSource(sourceId)) map.removeSource(sourceId);
   }
 
+  // Remove hover tooltip if it exists
+  if (anyMap._poiTransitHoverEl) {
+    anyMap._poiTransitHoverEl.remove();
+    anyMap._poiTransitHoverEl = undefined;
+  }
+
   anyMap._poiTransitEventsBound = false;
 };
 
@@ -60,7 +66,7 @@ export const ensurePoiTransitLayer = (map: maplibregl.Map, city: CityId) => {
     } as maplibregl.VectorSourceSpecification);
   }
 
-  // 2) Circle layer – purple transit dots
+  // 2) Circle layer – brown-ish transit dots
   if (!map.getLayer(layerId)) {
     map.addLayer(
       {
@@ -70,7 +76,7 @@ export const ensurePoiTransitLayer = (map: maplibregl.Map, city: CityId) => {
         "source-layer": sourceId,
         paint: {
           "circle-radius": 6,
-          "circle-color": "#7B3F00", // indigo / purple-ish
+          "circle-color": "#7B3F00", // your chosen color
           "circle-opacity": 0.95,
           "circle-stroke-width": 1,
           "circle-stroke-color": "#ffffff",
@@ -81,19 +87,73 @@ export const ensurePoiTransitLayer = (map: maplibregl.Map, city: CityId) => {
     );
   }
 
-  // 3) Simple interactivity – bind once for all city layers
+  // 3) Interactivity – hover tooltip + click log (bind once for all cities)
   if (!anyMap._poiTransitEventsBound) {
+    const container = map.getContainer();
+    let hoverEl = anyMap._poiTransitHoverEl as HTMLDivElement | undefined;
+
+    if (!hoverEl) {
+      hoverEl = document.createElement("div");
+      hoverEl.className = "poi-transit-hover-label";
+      hoverEl.style.position = "absolute";
+      hoverEl.style.pointerEvents = "none";
+      hoverEl.style.padding = "4px 8px";
+      hoverEl.style.background = "rgba(255,255,255,0.95)";
+      hoverEl.style.border = "1px solid rgba(0,0,0,0.1)";
+      hoverEl.style.borderRadius = "6px";
+      hoverEl.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+      hoverEl.style.font =
+        "600 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+      hoverEl.style.whiteSpace = "nowrap";
+      hoverEl.style.display = "none";
+      hoverEl.style.color = "#111";
+      container.appendChild(hoverEl);
+      anyMap._poiTransitHoverEl = hoverEl;
+    }
+
     for (const c of CITY_LIST) {
       const { layerId: lid } = getIdsForCity(c);
 
-      map.on("mouseenter", lid, () => {
+      // Hover tooltip
+      map.on("mousemove", lid, (e: MapLayerMouseEvent) => {
+        const feature = e.features?.[0] as
+          | maplibregl.MapGeoJSONFeature
+          | undefined;
+        if (!feature) return;
+
+        const props = feature.properties ?? {};
+
+        // Try a few likely fields – tweak these to match your schema
+        const name =
+          (props["name"] as string | undefined)?.trim() ||
+          (props["stop_name"] as string | undefined)?.trim() ||
+          (props["station"] as string | undefined)?.trim() ||
+          "Transit stop";
+
+        const routeOrType =
+          (props["route"] as string | undefined)?.trim() ||
+          (props["mode"] as string | undefined)?.trim() ||
+          (props["type"] as string | undefined)?.trim();
+
+        hoverEl!.innerHTML = routeOrType
+          ? `<div>${name}</div><div style="font-weight:400;">${routeOrType}</div>`
+          : `<div>${name}</div>`;
+
+        const { x, y } = e.point;
+        hoverEl!.style.left = `${x + 10}px`;
+        hoverEl!.style.top = `${y + 10}px`;
+        hoverEl!.style.display = "block";
+
         map.getCanvas().style.cursor = "pointer";
       });
 
+      // Leave: hide tooltip + reset cursor
       map.on("mouseleave", lid, () => {
+        hoverEl!.style.display = "none";
         map.getCanvas().style.cursor = "";
       });
 
+      // Click logging (your existing behaviour)
       map.on("click", lid, (e) => {
         const feature = e.features?.[0] as
           | maplibregl.MapGeoJSONFeature

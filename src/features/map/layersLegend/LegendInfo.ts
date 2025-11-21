@@ -21,6 +21,7 @@ export type LayerId =
 
 // One row inside the legend
 export type LegendItem = {
+  id?: number;
   label: string;
   color: string;          // hex or css color
   min?: number;           // optional numeric range

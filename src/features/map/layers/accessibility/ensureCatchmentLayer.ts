@@ -1,5 +1,5 @@
 // src/features/map/layers/ensureCatchmentLayer.ts
-import maplibregl from "maplibre-gl";
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
 import type { LegendItem } from "../../layersLegend/LegendInfo";
 
@@ -22,6 +22,15 @@ const getIdsForCity = (city: CityId) => {
 const getCatchmentField = (catchmentType: string, mins: number): string => {
   // e.g. "park" + 20 -> "park_20"
   return `${catchmentType}_${mins}`;
+};
+
+// Small label map for nicer tooltip text
+const CATCHMENT_LABEL_MAP: Record<string, string> = {
+  park: "Park",
+  school: "School",
+  service: "Service",
+  shopping: "Shopping",
+  transit: "Transit",
 };
 
 // 🔧 Per-type color ramps (different ranges for park / school / service / etc)
@@ -143,6 +152,14 @@ export const removeCatchmentLayer = (map: maplibregl.Map) => {
     if (map.getSource(sourceId)) map.removeSource(sourceId);
   }
 
+  // Clean up hover tooltip + state
+  if (anyMap._catchmentHoverEl) {
+    anyMap._catchmentHoverEl.remove();
+    anyMap._catchmentHoverEl = undefined;
+  }
+  anyMap._catchmentFieldName = undefined;
+  anyMap._catchmentLabel = undefined;
+  anyMap._catchmentMins = undefined;
   anyMap._catchmentEventsBound = false;
 };
 
@@ -220,31 +237,110 @@ export const ensureCatchmentLayer = (
     );
   }
 
-  // 4) Interactivity – bind once for all city layers
+  // Store active field + label + mins on the map so hover/click use latest
+  const catchmentLabel =
+    CATCHMENT_LABEL_MAP[catchmentType] ?? "Catchment";
+  anyMap._catchmentFieldName = fieldName;
+  anyMap._catchmentLabel = catchmentLabel;
+  anyMap._catchmentMins = catchmentMins;
+
+  // 4) Interactivity – hover + click, bind once for all city layers
   if (!anyMap._catchmentEventsBound) {
+    const container = map.getContainer();
+    let hoverEl = anyMap._catchmentHoverEl as HTMLDivElement | undefined;
+
+    if (!hoverEl) {
+      hoverEl = document.createElement("div");
+      hoverEl.className = "catchment-hover-label";
+      hoverEl.style.position = "absolute";
+      hoverEl.style.pointerEvents = "none";
+      hoverEl.style.padding = "4px 8px";
+      hoverEl.style.background = "rgba(255,255,255,0.95)";
+      hoverEl.style.border = "1px solid rgba(0,0,0,0.1)";
+      hoverEl.style.borderRadius = "6px";
+      hoverEl.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+      hoverEl.style.font =
+        "600 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+      hoverEl.style.whiteSpace = "nowrap";
+      hoverEl.style.display = "none";
+      hoverEl.style.color = "#111";
+      container.appendChild(hoverEl);
+      anyMap._catchmentHoverEl = hoverEl;
+    }
+
     for (const c of CITY_LIST) {
       const { fillLayerId: fid } = getIdsForCity(c);
 
-      map.on("mouseenter", fid, () => {
+      // Hover
+      map.on("mousemove", fid, (e: MapLayerMouseEvent) => {
+        const feature = e.features?.[0] as
+          | maplibregl.MapGeoJSONFeature
+          | undefined;
+        if (!feature) return;
+
+        const props = feature.properties ?? {};
+
+        // Try to get some kind of name, fall back gracefully
+        const areaName =
+          (props["name"] as string | undefined) ??
+          (props["lga_name21"] as string | undefined) ??
+          (props["sa2_name21"] as string | undefined) ??
+          "Area";
+
+        const activeFieldName: string =
+          (map as any)._catchmentFieldName ?? fieldName;
+        const activeLabel: string =
+          (map as any)._catchmentLabel ?? "Catchment";
+        const activeMins: number =
+          (map as any)._catchmentMins ?? catchmentMins;
+
+        const raw = props[activeFieldName];
+        let labelValue = "N/A";
+        const num = Number(raw);
+        if (raw != null && raw !== "" && Number.isFinite(num)) {
+          labelValue = num.toFixed(0);
+        }
+
+        hoverEl!.innerHTML = `
+          <div>${String(areaName)}</div>
+          <div style="font-weight:400;">
+            ${activeLabel} catchment (${activeMins} min): ${labelValue}
+          </div>
+        `;
+
+        const { x, y } = e.point;
+        hoverEl!.style.left = `${x + 10}px`;
+        hoverEl!.style.top = `${y + 10}px`;
+        hoverEl!.style.display = "block";
+
         map.getCanvas().style.cursor = "pointer";
       });
 
       map.on("mouseleave", fid, () => {
+        hoverEl!.style.display = "none";
         map.getCanvas().style.cursor = "";
       });
 
+      // Click logging – use active field/type/mins from map
       map.on("click", fid, (e) => {
         const feature = e.features?.[0] as
           | maplibregl.MapGeoJSONFeature
           | undefined;
         if (!feature) return;
 
+        const activeFieldName: string =
+          (map as any)._catchmentFieldName ?? fieldName;
+        const activeType: string =
+          (map as any)._catchmentLabel ?? catchmentType;
+        const activeMins: number =
+          (map as any)._catchmentMins ?? catchmentMins;
+
         console.log("Catchment click:", {
           city: c,
-          catchmentType,
-          catchmentMins,
-          field: fieldName,
-          rawValue: feature.properties?.[fieldName],
+          catchmentType: activeType,
+          catchmentMins: activeMins,
+          field: activeFieldName,
+          rawValue: feature.properties?.[activeFieldName],
           ...feature.properties,
         });
       });
@@ -253,6 +349,8 @@ export const ensureCatchmentLayer = (
     anyMap._catchmentEventsBound = true;
   }
 };
+
+// --- legends (unchanged) ---
 
 const PARK_CATCHMENT_LEGEND: LegendItem[] = [
   { label: "> 0 – 5",    color: "#ecfdf3" },

@@ -1,5 +1,5 @@
 // src/features/map/layers/ensureBoundaryUniversityLayer.ts
-import maplibregl from "maplibre-gl";
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
 import type { LegendItem } from "../../layersLegend/LegendInfo";
 
@@ -39,6 +39,12 @@ export const removeBoundaryUniversityLayer = (map: maplibregl.Map) => {
     if (map.getSource(sourceId)) map.removeSource(sourceId);
   }
 
+  // Clean up hover tooltip
+  if (anyMap._boundaryUniversityHoverEl) {
+    anyMap._boundaryUniversityHoverEl.remove();
+    anyMap._boundaryUniversityHoverEl = undefined;
+  }
+
   anyMap._boundaryUniversityEventsBound = false;
 };
 
@@ -65,7 +71,7 @@ export const ensureBoundaryUniversityLayer = (
     } as maplibregl.VectorSourceSpecification);
   }
 
-  // 2) Fill layer – purplke multipolygons
+  // 2) Fill layer – purple multipolygons
   if (!map.getLayer(fillLayerId)) {
     map.addLayer(
       {
@@ -100,19 +106,66 @@ export const ensureBoundaryUniversityLayer = (
     );
   }
 
-  // 4) Simple interactivity – bind once for all city layers
+  // 4) Hover + click interactivity – bind once for all city layers
   if (!anyMap._boundaryUniversityEventsBound) {
+    const container = map.getContainer();
+    let hoverEl = anyMap._boundaryUniversityHoverEl as
+      | HTMLDivElement
+      | undefined;
+
+    if (!hoverEl) {
+      hoverEl = document.createElement("div");
+      hoverEl.className = "university-boundary-hover-label";
+      hoverEl.style.position = "absolute";
+      hoverEl.style.pointerEvents = "none";
+      hoverEl.style.padding = "4px 8px";
+      hoverEl.style.background = "rgba(255,255,255,0.95)";
+      hoverEl.style.border = "1px solid rgba(0,0,0,0.1)";
+      hoverEl.style.borderRadius = "6px";
+      hoverEl.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+      hoverEl.style.font =
+        "600 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+      hoverEl.style.whiteSpace = "nowrap";
+      hoverEl.style.display = "none";
+      hoverEl.style.color = "#111";
+      container.appendChild(hoverEl);
+      anyMap._boundaryUniversityHoverEl = hoverEl;
+    }
+
     for (const c of CITY_LIST) {
       const { fillLayerId: fid } = getIdsForCity(c);
 
-      map.on("mouseenter", fid, () => {
+      // Hover tooltip
+      map.on("mousemove", fid, (e: MapLayerMouseEvent) => {
+        const feature = e.features?.[0] as
+          | maplibregl.MapGeoJSONFeature
+          | undefined;
+        if (!feature) return;
+
+        const props = feature.properties ?? {};
+        const uniName =
+          (props["name"] as string | undefined)?.trim() ||
+          (props["university"] as string | undefined)?.trim() ||
+          (props["campus"] as string | undefined)?.trim() ||
+          "University";
+
+        hoverEl!.innerHTML = `<div>${uniName}</div>`;
+
+        const { x, y } = e.point;
+        hoverEl!.style.left = `${x + 10}px`;
+        hoverEl!.style.top = `${y + 10}px`;
+        hoverEl!.style.display = "block";
+
         map.getCanvas().style.cursor = "pointer";
       });
 
+      // Mouse leave
       map.on("mouseleave", fid, () => {
+        hoverEl!.style.display = "none";
         map.getCanvas().style.cursor = "";
       });
 
+      // Click logging (kept from your original)
       map.on("click", fid, (e) => {
         const feature = e.features?.[0] as
           | maplibregl.MapGeoJSONFeature

@@ -24,6 +24,7 @@ import {
   type CyclistRatioType,
   purposeRatioTypeAtom,
   type PurposeRatioType,
+  networkIslandLengthAtom,
 } from "@/atoms/LayerAtom";
 import {
   ensureSevereAccidentLayer,
@@ -141,6 +142,7 @@ const Map: React.FC<MapProps> = ({
   const catchmentMins = useAtomValue<number>(catchmentMinsAtom);
   const cyclistRatioType = useAtomValue<CyclistRatioType>(cyclistRatioTypeAtom);
   const purposeRatioType = useAtomValue<PurposeRatioType>(purposeRatioTypeAtom);
+  const networkIslandLength = useAtomValue(networkIslandLengthAtom);
 
   const [is3D] = useAtom<boolean>(mode3DAtom);
   const showMasking = useAtomValue<boolean>(showMaskingLayerAtom);
@@ -191,7 +193,7 @@ const Map: React.FC<MapProps> = ({
           ensureExistingCyclingLayer(map, activeCity);
           break;
         case "cycleway-network-connectivity":
-          ensureNetworkIslandLayer(map, activeCity);
+          ensureNetworkIslandLayer(map, activeCity, networkIslandLength);
           break;
         case "population-density":
           ensurePopulationDensityLayer(map, activeCity);
@@ -241,7 +243,7 @@ const Map: React.FC<MapProps> = ({
           break;
       }
     },
-    [activeLayer, activeCity, catchmentType, catchmentMins, cyclistRatioType, purposeRatioType]
+    [activeLayer, activeCity, catchmentType, catchmentMins, cyclistRatioType, purposeRatioType, networkIslandLength]
   );
 
   // 1️⃣ Init map once

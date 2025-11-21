@@ -66,7 +66,7 @@ const TechnicalAccessibility = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-border min-w-[110px]"
+                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-foreground rounded-none min-w-[110px]"
                       onClick={(e) => e.stopPropagation()} // don't toggle accordion
                     >
                       <span className="truncate">
@@ -111,7 +111,7 @@ const TechnicalAccessibility = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-border min-w-20"
+                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-foreground rounded-none min-w-20"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span>{minsValue} mins</span>
@@ -214,7 +214,7 @@ const TechnicalAccessibility = () => {
 
             <AccordionContent className="mt-5 pb-0 text-xs">
               <span className="text-muted-foreground text-xs">
-                Unsafe spots
+                soon
               </span>
             </AccordionContent>
           </AccordionItem>

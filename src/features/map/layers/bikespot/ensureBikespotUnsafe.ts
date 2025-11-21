@@ -1,5 +1,5 @@
 // src/features/map/layers/ensureBikespotUnsafeLayer.ts
-import maplibregl from "maplibre-gl";
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
 import type { LegendItem } from "../../layersLegend/LegendInfo";
 
@@ -37,7 +37,13 @@ export const removeBikespotUnsafeLayer = (map: maplibregl.Map) => {
     if (map.getSource(sourceId)) map.removeSource(sourceId);
   }
 
-  anyMap._bikespotSafeEventsBound = false;
+  // Clean up hover tooltip
+  if (anyMap._bikespotUnsafeHoverEl) {
+    anyMap._bikespotUnsafeHoverEl.remove();
+    anyMap._bikespotUnsafeHoverEl = undefined;
+  }
+
+  anyMap._bikespotUnsafeEventsBound = false;
 };
 
 export const ensureBikespotUnsafeLayer = (
@@ -92,19 +98,62 @@ export const ensureBikespotUnsafeLayer = (
     );
   }
 
-  // 3) Simple interactivity – bind once for all city layers
+  // 3) Hover + click interactivity – bind once for all city layers
   if (!anyMap._bikespotUnsafeEventsBound) {
+    const container = map.getContainer();
+    let hoverEl = anyMap._bikespotUnsafeHoverEl as HTMLDivElement | undefined;
+
+    if (!hoverEl) {
+      hoverEl = document.createElement("div");
+      hoverEl.className = "bikespot-unsafe-hover-label";
+      hoverEl.style.position = "absolute";
+      hoverEl.style.pointerEvents = "none";
+      hoverEl.style.padding = "4px 8px";
+      hoverEl.style.background = "rgba(255,255,255,0.95)";
+      hoverEl.style.border = "1px solid rgba(0,0,0,0.1)";
+      hoverEl.style.borderRadius = "6px";
+      hoverEl.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
+      hoverEl.style.font =
+        "600 12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+      hoverEl.style.whiteSpace = "nowrap";
+      hoverEl.style.display = "none";
+      hoverEl.style.color = "#111";
+      container.appendChild(hoverEl);
+      anyMap._bikespotUnsafeHoverEl = hoverEl;
+    }
+
     for (const c of CITY_LIST) {
       const { layerId: lid } = getIdsForCity(c);
 
-      map.on("mouseenter", lid, () => {
+      // Hover tooltip
+      map.on("mousemove", lid, (e: MapLayerMouseEvent) => {
+        const feature = e.features?.[0] as
+          | maplibregl.MapGeoJSONFeature
+          | undefined;
+        if (!feature) return;
+
+        const props = feature.properties ?? {};
+        const loc =
+          (props["location t"] as string | undefined)?.trim() ||
+          "BikeSpot unsafe location";
+
+        hoverEl!.innerHTML = `<div>${loc}</div>`;
+
+        const { x, y } = e.point;
+        hoverEl!.style.left = `${x + 10}px`;
+        hoverEl!.style.top = `${y + 10}px`;
+        hoverEl!.style.display = "block";
+
         map.getCanvas().style.cursor = "pointer";
       });
 
+      // Mouse leave
       map.on("mouseleave", lid, () => {
+        hoverEl!.style.display = "none";
         map.getCanvas().style.cursor = "";
       });
 
+      // Click logging
       map.on("click", lid, (e) => {
         const feature = e.features?.[0] as
           | maplibregl.MapGeoJSONFeature
