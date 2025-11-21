@@ -1,6 +1,7 @@
 // src/features/map/layers/ensureBikespotUnsafeLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -80,7 +81,7 @@ export const ensureBikespotUnsafeLayer = (
         ],
         paint: {
           "circle-radius": 7,
-          "circle-color": "#EE4B2B", // green safe spots
+          "circle-color": "#EE4B2B",
           "circle-opacity": 0.95,
           "circle-stroke-width": 1.2,
           "circle-stroke-color": "#ffffff",
@@ -121,3 +122,10 @@ export const ensureBikespotUnsafeLayer = (
     anyMap._bikespotUnsafeEventsBound = true;
   }
 };
+
+export const BIKESPOT_UNSAFE_POI_LEGEND: LegendItem[] = [
+  {
+    label: "BikeSpot Unsafe",
+    color: "#EE4B2B",
+  },
+];

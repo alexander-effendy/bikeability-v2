@@ -1,47 +1,125 @@
-import { activeLayerAtom } from "@/atoms/LayerAtom"
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
-// import { Switch } from "@/components/ui/switch"
-import { useAtom } from "jotai"
-import { Eye, EyeOff } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useAtom } from "jotai";
+import { Eye, EyeOff, Check, ChevronsUpDown } from "lucide-react";
+
+import {
+  activeLayerAtom,
+  purposeRatioTypeAtom,
+  type PurposeRatioType,
+  cyclistRatioTypeAtom,
+  type CyclistRatioType,
+} from "@/atoms/LayerAtom";
+
+import { activeCityAtom, type CityId } from "@/atoms/GeneralAtom";
+
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+
+import { Button } from "@/components/ui/button";
+import { SEVERE_ACCIDENT_LEGEND } from "../map/layers/currentCyclingConditions/ensurePoiAccidentLayer";
+import { cn } from "@/lib/utils"; // shadcn util
+import { CYCLIST_RATIO_LEGEND } from "../map/layers/currentCyclingConditions/ensureCyclistRatioLayer";
+import { PURPOSE_RATIO_LEGEND } from "../map/layers/currentCyclingConditions/ensurePurposeRatioLayer";
+
+const CYCLIST_RATIO_OPTIONS: { value: CyclistRatioType; label: string }[] = [
+  { value: "commute", label: "Commute" },
+  { value: "leisure", label: "Leisure" },
+  { value: "sports", label: "Sports" },
+  { value: "utility", label: "Utility" },
+  { value: "total", label: "Total" },
+];
+
+const PURPOSE_RATIO_OPTIONS: { value: PurposeRatioType; label: string }[] = [
+  { value: "commute", label: "Commute" },
+  { value: "leisure", label: "Leisure" },
+  { value: "sports", label: "Sports" },
+  { value: "utility", label: "Utility" },
+];
 
 const TechnicalCurrentCyclingConditions = () => {
   const [layerActive, setLayerActive] = useAtom<string | null>(activeLayerAtom);
+  const [cyclistRatioType, setCyclistRatioType] =
+    useAtom<CyclistRatioType>(cyclistRatioTypeAtom);
+  const [purposeRatioType, setPurposeRatioType] =
+    useAtom<PurposeRatioType>(purposeRatioTypeAtom);
+
+  const [activeCity] = useAtom<CityId>(activeCityAtom);
+
+  const [cyclistComboOpen, setCyclistComboOpen] = useState(false);
+  const [purposeComboOpen, setPurposeComboOpen] = useState(false);
+
   const toggleLayer = (layerName: string) => {
-    if (layerActive === layerName) {
-      setLayerActive(null);
-    } else {
-      setLayerActive(layerName);
+    setLayerActive((prev) => (prev === layerName ? null : layerName));
+  };
+
+  const isSydney = activeCity === "sydney";
+
+  // 👉 Only allow detailed breakdown in Sydney; other cities only "total"
+  const cyclistOptionsForCity = isSydney
+    ? CYCLIST_RATIO_OPTIONS
+    : CYCLIST_RATIO_OPTIONS.filter((o) => o.value === "total");
+
+  // If city changes away from Sydney, force type to "total"
+  useEffect(() => {
+    if (!isSydney && cyclistRatioType !== "total") {
+      setCyclistRatioType("total");
     }
-  }
+  }, [isSydney, cyclistRatioType, setCyclistRatioType]);
+
+  const currentCyclistRatioOption =
+    cyclistOptionsForCity.find((o) => o.value === cyclistRatioType) ??
+    cyclistOptionsForCity[0];
+
+  const currentPurposeRatioOption =
+    PURPOSE_RATIO_OPTIONS.find((o) => o.value === purposeRatioType) ??
+    PURPOSE_RATIO_OPTIONS[0];
+
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="h-10 border-b border-foreground flex items-center p-4">
+      <div className="h-10 border-b border-sidebar-border flex items-center p-4">
         Current Cycling Conditions
       </div>
 
-      <div className="p-4 flex flex-col gap-4">
-
-
-        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
+      <div
+        style={{ height: "calc(100dvh - 128px)" }}
+        className="p-4 flex flex-col gap-4 overflow-y-auto soft-scrollbar-right"
+      >
+        {/* 🚴 Cyclist Ratio */}
+        <Accordion
+          type="single"
+          defaultValue="item-1"
+          className="border border-sidebar-border"
+        >
           <AccordionItem value="item-1" className="p-4">
-            <AccordionTrigger
-              className="flex justify-between [&>svg]:hidden items-center"
-            >
-              {/* LEFT: Title */}
+            <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
               <div className="flex items-center gap-2">
-                <span>Cycling Metrics</span>
+                <span>Cyclist Ratio</span>
               </div>
-
-              {/* RIGHT: Eye Icon (controlled by layerActive) */}
               <span
-                onClick={() => {
-                  toggleLayer('cycling-metrics')
-                  // e.stopPropagation();     // prevent accordion toggle
-                }}
+                onClick={() => toggleLayer("cyclist-ratio")}
                 className="cursor-pointer"
               >
-                {layerActive === 'cycling-metrics' ? (
+                {layerActive === "cyclist-ratio" ? (
                   <Eye className="size-5" />
                 ) : (
                   <EyeOff className="size-5" />
@@ -49,33 +127,116 @@ const TechnicalCurrentCyclingConditions = () => {
               </span>
             </AccordionTrigger>
 
-            <AccordionContent className="mt-5">
-              <span className="text-muted-foreground">
-                Percentage of residents cycling for various purposes. This percentage is produced based on a cycling survey (2025).
+            <AccordionContent className="mt-5 pb-0 text-xs space-y-3">
+              <span className="text-muted-foreground block">
+                The percentage ratio of cyclists (by total records).
               </span>
+
+              <div className="flex items-center gap-2">
+                <div className="text-muted-foreground">Cyclist purpose</div>
+
+                <Popover
+                  open={cyclistComboOpen}
+                  onOpenChange={setCyclistComboOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={cyclistComboOpen}
+                      className="h-8 justify-between text-xs"
+                    >
+                      <span className="truncate">
+                        {currentCyclistRatioOption?.label ?? "Select type"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="w-[220px] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search purpose..."
+                        className="h-8 text-xs"
+                      />
+                      <CommandList>
+                        <CommandEmpty>No purpose found.</CommandEmpty>
+                        <CommandGroup>
+                          {cyclistOptionsForCity.map((option) => (
+                            <CommandItem
+                              key={option.value}
+                              value={option.value}
+                              onSelect={() => {
+                                setCyclistRatioType(option.value);
+                                setCyclistComboOpen(false);
+                              }}
+                              className="text-xs"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-3 w-3",
+                                  cyclistRatioType === option.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {option.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {!isSydney && (
+                <p className="text-[11px] text-muted-foreground">
+                  Detailed purpose breakdown is only available for Sydney –
+                  showing total cyclists only.
+                </p>
+              )}
+              <div className="space-y-2 mt-1 text-xs px-1 pt-2">
+                {CYCLIST_RATIO_LEGEND.map((item) => (
+                  <div key={item.label} className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-3 w-3 rounded-sm border border-black/10"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span>
+                      {item.label}
+                      {item.min !== undefined && (
+                        <span className="text-muted-foreground ml-1">
+                          {item.max == null
+                            ? `(${item.min}+ )`
+                            : `(${item.min} – ${item.max})`}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
 
-        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
+        {/* 🚴‍♀️ Purpose Ratio */}
+        <Accordion
+          type="single"
+          defaultValue="item-1"
+          className="border border-sidebar-border"
+        >
           <AccordionItem value="item-1" className="p-4">
-            <AccordionTrigger
-              className="flex justify-between [&>svg]:hidden items-center"
-            >
-              {/* LEFT: Title */}
+            <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
               <div className="flex items-center gap-2">
-                <span>Severe Cycling Crashes</span>
+                <span>Purpose Ratio</span>
               </div>
 
-              {/* RIGHT: Eye Icon (controlled by layerActive) */}
               <span
-                onClick={() => {
-                  toggleLayer('severe-cycling-crashes')
-                  // e.stopPropagation();     // prevent accordion toggle
-                }}
+                onClick={() => toggleLayer("purpose-ratio")}
                 className="cursor-pointer"
               >
-                {layerActive === 'severe-cycling-crashes' ? (
+                {layerActive === "purpose-ratio" ? (
                   <Eye className="size-5" />
                 ) : (
                   <EyeOff className="size-5" />
@@ -83,17 +244,146 @@ const TechnicalCurrentCyclingConditions = () => {
               </span>
             </AccordionTrigger>
 
-            <AccordionContent className="mt-5">
+            <AccordionContent className="mt-5 pb-0 text-xs space-y-3">
+              <span className="text-muted-foreground">
+                Percentage ratio of cycling purpose (by total records).
+              </span>
+
+              <div className="flex items-center gap-2">
+                <div className="text-muted-foreground">Purpose</div>
+
+                <Popover
+                  open={purposeComboOpen}
+                  onOpenChange={setPurposeComboOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={purposeComboOpen}
+                      className="h-8 justify-between text-xs"
+                    >
+                      <span className="truncate">
+                        {currentPurposeRatioOption?.label ?? "Select purpose"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="w-[220px] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search purpose..."
+                        className="h-8 text-xs"
+                      />
+                      <CommandList>
+                        <CommandEmpty>No purpose found.</CommandEmpty>
+                        <CommandGroup>
+                          {PURPOSE_RATIO_OPTIONS.map((option) => (
+                            <CommandItem
+                              key={option.value}
+                              value={option.value}
+                              onSelect={() => {
+                                setPurposeRatioType(option.value);
+                                setPurposeComboOpen(false);
+                              }}
+                              className="text-xs"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-3 w-3",
+                                  purposeRatioType === option.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {option.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2 mt-1 text-xs px-1 pt-2">
+                {PURPOSE_RATIO_LEGEND.map((item) => (
+                  <div key={item.label} className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-3 w-3 rounded-sm border border-black/10"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span>
+                      {item.label}
+                      {item.min !== undefined && (
+                        <span className="text-muted-foreground ml-1">
+                          {item.max == null
+                            ? `(${item.min}+ )`
+                            : `(${item.min} – ${item.max})`}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        {/* 🚨 Severe Cycling Crashes */}
+        <Accordion
+          type="single"
+          defaultValue="item-1"
+          className="border border-sidebar-border"
+        >
+          <AccordionItem value="item-1" className="p-4">
+            <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
+              <div className="flex items-center gap-2">
+                <span>Severe Cycling Crashes</span>
+              </div>
+              <span
+                onClick={() => toggleLayer("severe-cycling-crashes")}
+                className="cursor-pointer"
+              >
+                {layerActive === "severe-cycling-crashes" ? (
+                  <Eye className="size-5" />
+                ) : (
+                  <EyeOff className="size-5" />
+                )}
+              </span>
+            </AccordionTrigger>
+
+            <AccordionContent className="mt-5 pb-0 text-xs ">
               <span className="text-muted-foreground">
                 Crashes involving cyclists reported to police (2019 - 2023).
               </span>
+              <div className="space-y-1 mt-1 text-xs px-1 pt-2">
+                {SEVERE_ACCIDENT_LEGEND.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-2 text-xs text-muted-foreground"
+                  >
+                    <span className="relative flex items-center justify-center h-5 w-5">
+                      <span
+                        className="h-5 w-5 rounded-full border border-white shadow-sm"
+                        style={{ backgroundColor: item.outerColor }}
+                      />
+                      <span
+                        className="absolute size-1.5 rounded-full"
+                        style={{ backgroundColor: item.innerColor }}
+                      />
+                    </span>
+
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
       </div>
-
     </div>
-  )
-}
+  );
+};
 
-export default TechnicalCurrentCyclingConditions
+export default TechnicalCurrentCyclingConditions;

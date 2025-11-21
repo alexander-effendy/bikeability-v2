@@ -1,21 +1,44 @@
-// ensureBoundaryLgaLayer.ts
-import maplibregl from "maplibre-gl";
-import type { MapLayerMouseEvent } from "maplibre-gl";
+// src/features/map/layers/currentCyclingConditions/ensurePurposeRatioLayer.ts
+import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
+import type { PurposeRatioType } from "@/atoms/LayerAtom";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
-// All cities that have *_boundary_lga tiles
+// All cities that have *_lga_purpose tiles
 const CITY_LIST: CityId[] = ["sydney", "melbourne", "brisbane", "perth"];
 
-// Common column names (adjust if different per city)
-const VALUE_FIELD = "index_value";
+// Columns (adjust if schema differs)
 const LGA_ID_FIELD = "lga_code21";
 const LGA_NAME_FIELD = "lga_name21";
 
+// Map type -> column name (per your note: leisure_pc, commute_pc, utility_pc, sport_pc)
+const getPurposeField = (purposeType: PurposeRatioType): string => {
+  switch (purposeType) {
+    case "commute":
+      return "commute_pc";
+    case "leisure":
+      return "leisure_pc";
+    case "utility":
+      return "utility_pc";
+    case "sports":
+      return "sports_pct"; // adjust if your DB uses a different name
+    default:
+      return "commute_pc";
+  }
+};
+
+const PURPOSE_LABEL: Record<PurposeRatioType, string> = {
+  commute: "Commute",
+  leisure: "Leisure",
+  utility: "Utility",
+  sports: "Sport",
+};
+
 // Build ids for a given city
 const getIdsForCity = (city: CityId) => {
-  const sourceId = `${city}_boundary_lga`;
+  const sourceId = `${city}_lga_purpose`;
   return {
     sourceId,
     fillLayerId: `${sourceId}-fill`,
@@ -23,7 +46,7 @@ const getIdsForCity = (city: CityId) => {
   };
 };
 
-// Find first symbol layer to insert underneath labels
+// Insert below first symbol layer (labels)
 const getFirstSymbolLayerId = (map: maplibregl.Map): string | undefined => {
   const style = map.getStyle();
   if (!style?.layers) return undefined;
@@ -33,10 +56,9 @@ const getFirstSymbolLayerId = (map: maplibregl.Map): string | undefined => {
   return undefined;
 };
 
-export const removeBoundaryLgaLayer = (map: maplibregl.Map) => {
+export const removePurposeRatioLayer = (map: maplibregl.Map) => {
   const anyMap = map as any;
 
-  // Remove all city LGA layers/sources
   for (const city of CITY_LIST) {
     const { sourceId, fillLayerId, outlineLayerId } = getIdsForCity(city);
     if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
@@ -44,50 +66,51 @@ export const removeBoundaryLgaLayer = (map: maplibregl.Map) => {
     if (map.getSource(sourceId)) map.removeSource(sourceId);
   }
 
-  // Just hide the tooltip if it exists; keep the element & handlers
-  if (anyMap._lgaHoverEl) {
-    anyMap._lgaHoverEl.style.display = "none";
+  if (anyMap._purposeHoverEl) {
+    anyMap._purposeHoverEl.remove();
+    anyMap._purposeHoverEl = undefined;
   }
 
-  // NOTE: do NOT reset _lgaHoverBound / _lgaClickBound here,
-  // otherwise you'll re-attach handlers endlessly.
-  // anyMap._lgaHoverBound = false;
-  // anyMap._lgaClickBound = false;
+  anyMap._purposeHoverBound = false;
+  anyMap._purposeClickBound = false;
+  anyMap._purposeFieldName = undefined;
+  anyMap._purposeFieldLabel = undefined;
 };
 
-// --- color ramp 0.15 – 0.55+ ---
-
-const baseFillForLga = (): any => {
+// --- color ramp for *_pc (percentage) ---
+// Using your orange-ish ramp:
+// 0–2, 2–4, 4–6, 6–10, 10–15, 15–20, 20%+
+const baseFillForPurposeRatio = (valueExpr: any): any => {
   return [
     "step",
-    ["to-number", ["get", VALUE_FIELD], 0],
-    "#eff6ff", // < 0.15 or 0
-    0.15,
-    "#dbeafe", // 0.15 – 0.25
-    0.25,
-    "#bfdbfe", // 0.25 – 0.35
-    0.35,
-    "#93c5fd", // 0.35 – 0.45
-    0.45,
-    "#60a5fa", // 0.45 – 0.55
-    0.55,
-    "#1d4ed8", // 0.55+
+    valueExpr,
+
+    // 0 – 2%
+    "#fff7ed",  // orange-50
+    2, "#ffedd5", // 2 – 4%
+    4, "#fed7aa", // 4 – 6%
+    6, "#fdba74", // 6 – 10%
+    10, "#fb923c", // 10 – 15%
+    15, "#f97316", // 15 – 20%
+    20, "#7c2d12", // 20%+
   ];
 };
 
-const fillColorWithHover = (): any => [
+const fillColorWithHover = (valueExpr: any): any => [
   "case",
   ["boolean", ["feature-state", "hover"], false],
-  "#ffcc00",
-  baseFillForLga(),
+  "#22c55e", // hover highlight
+  baseFillForPurposeRatio(valueExpr),
 ];
 
-// --- main helper ---
-
-export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
+export const ensurePurposeRatioLayer = (
+  map: maplibregl.Map,
+  city: CityId,
+  purposeType: PurposeRatioType
+) => {
   if (!map.isStyleLoaded()) {
     map.once("style.load", () => {
-      ensureBoundaryLgaLayer(map, city);
+      ensurePurposeRatioLayer(map, city, purposeType);
     });
     return;
   }
@@ -95,6 +118,18 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
   const { sourceId, fillLayerId, outlineLayerId } = getIdsForCity(city);
   const beforeId = getFirstSymbolLayerId(map);
   const anyMap = map as any;
+
+  const fieldName = getPurposeField(purposeType);
+  const valueExpr: any = ["to-number", ["get", fieldName], 0];
+  const fillColorExpr = fillColorWithHover(valueExpr);
+
+  // Show polygons only where value > 0
+  const fillOpacityExpr: any = [
+    "case",
+    [">", valueExpr, 0],
+    0.8,
+    0,
+  ];
 
   // 1) Source
   if (!map.getSource(sourceId)) {
@@ -104,8 +139,6 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
       promoteId: LGA_ID_FIELD,
     } as maplibregl.VectorSourceSpecification);
   }
-
-  const fillColorExpr = fillColorWithHover();
 
   // 2) Fill layer
   if (!map.getLayer(fillLayerId)) {
@@ -117,13 +150,14 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
         "source-layer": sourceId,
         paint: {
           "fill-color": fillColorExpr,
-          "fill-opacity": 0.7,
+          "fill-opacity": fillOpacityExpr,
         },
       },
       beforeId || undefined
     );
   } else {
     map.setPaintProperty(fillLayerId, "fill-color", fillColorExpr);
+    map.setPaintProperty(fillLayerId, "fill-opacity", fillOpacityExpr);
   }
 
   // 3) Outline layer
@@ -135,26 +169,29 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
         source: sourceId,
         "source-layer": sourceId,
         paint: {
-          "line-color": "#111111",
+          "line-color": "#111827",
           "line-width": 0.4,
-          "line-opacity": 0.8,
+          "line-opacity": 0.6,
         },
       },
       beforeId || undefined
     );
   }
 
-  // 4) Hover label (once per map – but works for ALL city layers)
-  if (!anyMap._lgaHoverBound) {
+  // Store the currently active field + label so hover can adapt
+  anyMap._purposeFieldName = fieldName;
+  anyMap._purposeFieldLabel = PURPOSE_LABEL[purposeType];
+
+  // 4) Hover label (once per map – works across all cities)
+  if (!anyMap._purposeHoverBound) {
     let hoveredId: string | number | null = null;
     let hoveredSourceId: string | null = null;
 
-    // Tooltip element
     const container = map.getContainer();
-    let hoverEl = anyMap._lgaHoverEl as HTMLDivElement | undefined;
+    let hoverEl = anyMap._purposeHoverEl as HTMLDivElement | undefined;
     if (!hoverEl) {
       hoverEl = document.createElement("div");
-      hoverEl.className = "city-lga-hover-label";
+      hoverEl.className = "lga-purpose-hover-label";
       hoverEl.style.position = "absolute";
       hoverEl.style.pointerEvents = "none";
       hoverEl.style.padding = "4px 8px";
@@ -168,15 +205,13 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
       hoverEl.style.display = "none";
       hoverEl.style.color = "#111";
       container.appendChild(hoverEl);
-      anyMap._lgaHoverEl = hoverEl;
+      anyMap._purposeHoverEl = hoverEl;
     }
 
-    // Attach layer-specific handlers for ALL city layers
     for (const c of CITY_LIST) {
       const { sourceId: citySourceId, fillLayerId: cityFillId } =
         getIdsForCity(c);
 
-      // Move within a fill polygon
       map.on(
         "mousemove",
         cityFillId,
@@ -192,10 +227,10 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
                   | number
                   | undefined)
               : undefined);
-          if (id == null) return;
 
-          // Clear previous highlight if different
+          // Only do feature-state highlight when we actually have an id
           if (
+            id != null &&
             hoveredId !== null &&
             hoveredSourceId &&
             (hoveredId !== id || hoveredSourceId !== citySourceId)
@@ -210,17 +245,22 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
             );
           }
 
-          hoveredId = id;
-          hoveredSourceId = citySourceId;
+          if (id != null) {
+            hoveredId = id;
+            hoveredSourceId = citySourceId;
 
-          map.setFeatureState(
-            {
-              source: citySourceId,
-              sourceLayer: citySourceId,
-              id,
-            },
-            { hover: true }
-          );
+            map.setFeatureState(
+              {
+                source: citySourceId,
+                sourceLayer: citySourceId,
+                id,
+              },
+              { hover: true }
+            );
+          } else {
+            hoveredId = null;
+            hoveredSourceId = null;
+          }
 
           const name =
             (LGA_NAME_FIELD &&
@@ -228,17 +268,23 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
             (feature.properties?.name as string | undefined) ??
             "N/A";
 
-          const raw = feature.properties?.[VALUE_FIELD];
+          const activeFieldName: string =
+            (map as any)._purposeFieldName ?? getPurposeField("commute");
+          const activeLabel: string =
+            (map as any)._purposeFieldLabel ?? "Purpose ratio";
+
+          const raw = feature.properties?.[activeFieldName];
           let labelValue = "N/A";
           const num = Number(raw);
           if (raw != null && raw !== "" && Number.isFinite(num)) {
-            labelValue = num.toFixed(2);
+            // assume *_pc is already percent
+            labelValue = `${num.toFixed(1)}%`;
           }
 
           hoverEl!.innerHTML = `
             <div>${String(name)}</div>
             <div style="font-weight:400;">
-              ${VALUE_FIELD}: ${labelValue}
+              ${activeLabel}: ${labelValue}
             </div>
           `;
 
@@ -251,7 +297,6 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
         }
       );
 
-      // When leaving that city layer
       map.on("mouseleave", cityFillId, () => {
         if (hoveredId !== null && hoveredSourceId) {
           map.setFeatureState(
@@ -270,11 +315,11 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
       });
     }
 
-    anyMap._lgaHoverBound = true;
+    anyMap._purposeHoverBound = true;
   }
 
   // 5) Click logging (once per map, per city layer)
-  if (!anyMap._lgaClickBound) {
+  if (!anyMap._purposeClickBound) {
     for (const c of CITY_LIST) {
       const { fillLayerId: cityFillId } = getIdsForCity(c);
 
@@ -284,15 +329,54 @@ export const ensureBoundaryLgaLayer = (map: maplibregl.Map, city: CityId) => {
         (e: MapLayerMouseEvent) => {
           const feature = e.features?.[0];
           if (!feature) return;
-          console.log("City LGA click:", {
+
+          const activeFieldName: string =
+            (map as any)._purposeFieldName ?? getPurposeField("commute");
+          const activeLabel: string =
+            (map as any)._purposeFieldLabel ?? "Purpose ratio";
+
+          console.log("LGA purpose ratio click:", {
             city: c,
-            layerId: feature.layer.id,
-            props: feature.properties,
+            purposeField: activeFieldName,
+            purposeLabel: activeLabel,
+            value: feature.properties?.[activeFieldName],
+            ...feature.properties,
           });
         }
       );
     }
 
-    anyMap._lgaClickBound = true;
+    (map as any)._purposeClickBound = true;
   }
 };
+
+export const PURPOSE_RATIO_LEGEND: LegendItem[] = [
+  {
+    label: "0 – 2%",
+    color: "#fff7ed",
+  },
+  {
+    label: "2 – 4%",
+    color: "#ffedd5",
+  },
+  {
+    label: "4 – 6%",
+    color: "#fed7aa",
+  },
+  {
+    label: "6 – 10%",
+    color: "#fdba74",
+  },
+  {
+    label: "10 – 15%",
+    color: "#fb923c",
+  },
+  {
+    label: "15 – 20%",
+    color: "#f97316",
+  },
+  {
+    label: "20%+",
+    color: "#7c2d12",
+  },
+];

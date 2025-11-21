@@ -1,6 +1,7 @@
 // src/features/map/layers/ensureExistingCyclingLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -136,3 +137,30 @@ export const ensureExistingCyclingLayer = (
     anyMap._existingCyclingEventsBound = true;
   }
 };
+
+export const EXISTING_CYCLING_LINE_LEGEND: LegendItem[] = [
+  {
+    label: "Separated / protected",
+    color: "#22c55e",
+  },
+  {
+    label: "Painted bicycle lane",
+    color: "#3b82f6",
+  },
+  {
+    label: "Shared path",
+    color: "#eab308",
+  },
+  {
+    label: "Shared zone / Quietway",
+    color: "#8b5cf6",
+  },
+  {
+    label: "Associated bike infrastructure",
+    color: "#ec4899",
+  },
+  {
+    label: "Other bike infrastructure",
+    color: "#6b7280",
+  },
+];

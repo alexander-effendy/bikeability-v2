@@ -1,6 +1,7 @@
 // src/features/map/layers/ensurePopulationDensityLayer.ts
 import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -10,7 +11,7 @@ const CITY_LIST: CityId[] = ["sydney", "melbourne", "brisbane", "perth"];
 // Data columns – tweak if your schema differs
 const VALUE_FIELD = "pop_den";      // population / density field
 const POA_ID_FIELD = "poa_code21";  // ABS code, adjust if different
-const POA_NAME_FIELD = "poa_name21";
+const POA_NAME_FIELD = "poa_code21";
 
 // Build ids for a given city
 const getIdsForCity = (city: CityId) => {
@@ -299,3 +300,54 @@ export const ensurePopulationDensityLayer = (
     anyMap._poaClickBound = true;
   }
 };
+
+export const POPULATION_DENSITY_LEGEND: LegendItem[] = [
+  {
+    label: "< 200",
+    min: 0,
+    max: 200,
+    color: "#fef2f2",
+  },
+  {
+    label: "200 – 500",
+    min: 200,
+    max: 500,
+    color: "#fee2e2",
+  },
+  {
+    label: "500 – 1,000",
+    min: 500,
+    max: 1000,
+    color: "#fecaca",
+  },
+  {
+    label: "1,000 – 2,000",
+    min: 1000,
+    max: 2000,
+    color: "#fca5a5",
+  },
+  {
+    label: "2,000 – 5,000",
+    min: 2000,
+    max: 5000,
+    color: "#f87171",
+  },
+  {
+    label: "5,000 – 10,000",
+    min: 5000,
+    max: 10000,
+    color: "#ef4444",
+  },
+  {
+    label: "10,000 – 20,000",
+    min: 10000,
+    max: 20000,
+    color: "#b91c1c",
+  },
+  {
+    label: "20,000+",
+    min: 20000,
+    max: null,
+    color: "#7f1d1d",
+  },
+] as const;

@@ -1,6 +1,7 @@
 // src/features/map/layers/ensureBikespotSafeLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -121,3 +122,10 @@ export const ensureBikespotSafeLayer = (
     anyMap._bikespotSafeEventsBound = true;
   }
 };
+
+export const BIKESPOT_SAFE_POI_LEGEND: LegendItem[] = [
+  {
+    label: "BikeSpot Safe",
+    color: "#22c55e",
+  },
+];

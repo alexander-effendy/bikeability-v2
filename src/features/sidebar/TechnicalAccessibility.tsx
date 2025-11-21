@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 // 👇 update this import path to wherever you defined these atoms
 import { catchmentTypeAtom, catchmentMinsAtom } from "@/atoms/LayerAtom";
+import { getCatchmentLegend } from "../map/layers/accessibility/ensureCatchmentLayer";
 
 // ---- options ----
 const CATCHMENT_TYPE_OPTIONS = [
@@ -32,6 +33,8 @@ const TechnicalAccessibility = () => {
   const [typeOpen, setTypeOpen] = useState(false);
   const [minsOpen, setMinsOpen] = useState(false);
 
+  const legendItems = getCatchmentLegend(typeValue || "park");
+
   const toggleLayer = (layerName: string) => {
     if (layerActive === layerName) {
       setLayerActive(null);
@@ -49,7 +52,7 @@ const TechnicalAccessibility = () => {
         Accessibility
       </div>
 
-      <div className="p-4 flex flex-col gap-4">
+      <div style={{ height: 'calc(100dvh - 128px)' }} className="p-4 flex flex-col gap-4 overflow-y-auto soft-scrollbar-right">
         {/* Catchment row */}
         <Accordion type="single" defaultValue="item-1" className="border border-foreground">
           <AccordionItem value="item-1" className="p-4">
@@ -108,7 +111,7 @@ const TechnicalAccessibility = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-border min-w-[80px]"
+                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-border min-w-20"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span>{minsValue} mins</span>
@@ -161,11 +164,25 @@ const TechnicalAccessibility = () => {
               </span>
             </AccordionTrigger>
 
-            <AccordionContent className="mt-5">
-              <span className="text-muted-foreground text-sm">
+            <AccordionContent className="mt-5 pb-0 text-xs">
+              <span className="text-muted-foreground text-xs">
                 Choose the destination type and the travel time to highlight mesh blocks
                 within the selected catchment.
               </span>
+              <div className="space-y-2 mt-1 text-xs px-1 pt-2">
+                {legendItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <span
+                      className="inline-block h-3 w-3 rounded-sm border border-border"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
@@ -195,8 +212,8 @@ const TechnicalAccessibility = () => {
               </span>
             </AccordionTrigger>
 
-            <AccordionContent className="mt-5">
-              <span className="text-muted-foreground text-sm">
+            <AccordionContent className="mt-5 pb-0 text-xs">
+              <span className="text-muted-foreground text-xs">
                 Unsafe spots
               </span>
             </AccordionContent>

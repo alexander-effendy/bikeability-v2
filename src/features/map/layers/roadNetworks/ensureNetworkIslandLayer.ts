@@ -1,6 +1,7 @@
 // src/features/map/layers/ensureNetworkIslandLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -129,3 +130,30 @@ export const ensureNetworkIslandLayer = (
     anyMap._networkIslandEventsBound = true;
   }
 };
+
+export const NETWORK_ISLAND_LINE_LEGEND: LegendItem[] = [
+  {
+    label: "1",
+    color: "#000000", // black
+  },
+  {
+    label: "2",
+    color: "#ef4444", // red
+  },
+  {
+    label: "3",
+    color: "#3b82f6", // blue
+  },
+  {
+    label: "4",
+    color: "#22c55e", // green
+  },
+  {
+    label: "5",
+    color: "#fb923c", // orange
+  },
+  {
+    label: "6+",
+    color: "#a855f7", // purple
+  },
+];

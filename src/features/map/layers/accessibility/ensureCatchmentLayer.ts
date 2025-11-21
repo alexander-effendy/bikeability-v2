@@ -1,6 +1,7 @@
 // src/features/map/layers/ensureCatchmentLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -250,5 +251,76 @@ export const ensureCatchmentLayer = (
     }
 
     anyMap._catchmentEventsBound = true;
+  }
+};
+
+const PARK_CATCHMENT_LEGEND: LegendItem[] = [
+  { label: "> 0 – 5",    color: "#ecfdf3" },
+  { label: "5 – 15",     color: "#bbf7d0" },
+  { label: "15 – 30",    color: "#4ade80" },
+  { label: "30 – 60",    color: "#22c55e" },
+  { label: "60 – 100",   color: "#16a34a" },
+  { label: "100+",       color: "#166534" },
+];
+
+const SCHOOL_CATCHMENT_LEGEND: LegendItem[] = [
+  { label: "> 0 – 1",    color: "#f5f3ff" },
+  { label: "1 – 3",      color: "#e0e7ff" },
+  { label: "3 – 5",      color: "#c7d2fe" },
+  { label: "5 – 7",      color: "#818cf8" },
+  { label: "7 – 10",     color: "#4f46e5" },
+  { label: "10+",        color: "#3730a3" },
+];
+
+const SERVICE_CATCHMENT_LEGEND: LegendItem[] = [
+  { label: "> 0 – 2",    color: "#fff7ed" },
+  { label: "2 – 5",      color: "#ffedd5" },
+  { label: "5 – 10",     color: "#fed7aa" },
+  { label: "10 – 15",    color: "#fdba74" },
+  { label: "15 – 20",    color: "#fb923c" },
+  { label: "20+",        color: "#c2410c" },
+];
+
+const SHOPPING_CATCHMENT_LEGEND: LegendItem[] = [
+  { label: "> 0 – 3",    color: "#fff1f2" },
+  { label: "3 – 8",      color: "#ffe4e6" },
+  { label: "8 – 15",     color: "#fecdd3" },
+  { label: "15 – 22",    color: "#fb7185" },
+  { label: "22 – 30",    color: "#e11d48" },
+  { label: "30+",        color: "#9f1239" },
+];
+
+const TRANSIT_CATCHMENT_LEGEND: LegendItem[] = [
+  { label: "> 0 – 2",    color: "#ecfeff" },
+  { label: "2 – 5",      color: "#cffafe" },
+  { label: "5 – 8",      color: "#a5f3fc" },
+  { label: "8 – 12",     color: "#22d3ee" },
+  { label: "12 – 20",    color: "#06b6d4" },
+  { label: "20+",        color: "#0e7490" },
+];
+
+const DEFAULT_CATCHMENT_LEGEND: LegendItem[] = [
+  { label: "> 0 – 2",    color: "#f9fafb" },
+  { label: "2 – 4",      color: "#e5e7eb" },
+  { label: "4 – 6",      color: "#d1d5db" },
+  { label: "6 – 8",      color: "#9ca3af" },
+  { label: "8 – 10",     color: "#6b7280" },
+  { label: "10+",        color: "#374151" },
+];
+
+export const getCatchmentLegend = (type: string): LegendItem[] => {
+  switch (type) {
+    case "park":
+      return PARK_CATCHMENT_LEGEND;
+    case "school":
+      return SCHOOL_CATCHMENT_LEGEND;
+    case "service":
+      return SERVICE_CATCHMENT_LEGEND;
+    case "shopping":
+      return SHOPPING_CATCHMENT_LEGEND;
+    case "transit":
+      return TRANSIT_CATCHMENT_LEGEND;
+    default:
+      return DEFAULT_CATCHMENT_LEGEND;
   }
 };

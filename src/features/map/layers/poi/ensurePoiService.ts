@@ -1,6 +1,7 @@
 // src/features/map/layers/ensurePoiServiceLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -109,3 +110,10 @@ export const ensurePoiServiceLayer = (map: maplibregl.Map, city: CityId) => {
     anyMap._poiServiceEventsBound = true;
   }
 };
+
+export const SERVICE_POI_LEGEND: LegendItem[] = [
+  {
+    label: "Service",
+    color: "#0ea5e9",
+  },
+];

@@ -1,21 +1,21 @@
-// src/features/map/layers/ensureJobDensityLayer.ts
+// src/features/map/layers/ensureCyclistRatioLayer.ts
 import maplibregl, { type MapLayerMouseEvent } from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { CyclistRatioType } from "@/atoms/LayerAtom";
 import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
-// All cities that have *_job_density_sa2 tiles
+// All cities that have *_cyclist_ratio tiles
 const CITY_LIST: CityId[] = ["sydney", "melbourne", "brisbane", "perth"];
 
-// Columns – tweak if schema differs
-const VALUE_FIELD = "job_den";      // job density
-const SA2_ID_FIELD = "sa2_code21";  // adjust if different
-const SA2_NAME_FIELD = "sa2_name21";
+// ID/name fields – tweak if schema differs
+const AREA_ID_FIELD = "sa2_code21";
+const AREA_NAME_FIELD = "sa2_name21";
 
 // Build ids for a given city
 const getIdsForCity = (city: CityId) => {
-  const sourceId = `${city}_job_density_sa2`;
+  const sourceId = `${city}_cyclist_ratio`;
   return {
     sourceId,
     fillLayerId: `${sourceId}-fill`,
@@ -23,7 +23,24 @@ const getIdsForCity = (city: CityId) => {
   };
 };
 
-// Reuse helper: find first symbol layer to insert below labels
+// Decide which column to read based on type
+const getValueField = (cyclistRatioType: CyclistRatioType): string => {
+  if (cyclistRatioType === "total") {
+    return "cyc_ratio";
+  }
+  // commute | leisure | sports | utility
+  return cyclistRatioType;
+};
+
+const CYCLIST_RATIO_LABEL: Record<CyclistRatioType, string> = {
+  total: "Cyclist ratio",
+  commute: "Commute cyclist ratio",
+  leisure: "Leisure cyclist ratio",
+  sports: "Sport cyclist ratio",
+  utility: "Utility cyclist ratio",
+};
+
+// Insert below first symbol layer (labels)
 const getFirstSymbolLayerId = (map: maplibregl.Map): string | undefined => {
   const style = map.getStyle();
   if (!style?.layers) return undefined;
@@ -33,7 +50,7 @@ const getFirstSymbolLayerId = (map: maplibregl.Map): string | undefined => {
   return undefined;
 };
 
-export const removeJobDensityLayer = (map: maplibregl.Map) => {
+export const removeCyclistRatioLayer = (map: maplibregl.Map) => {
   const anyMap = map as any;
 
   for (const city of CITY_LIST) {
@@ -43,56 +60,57 @@ export const removeJobDensityLayer = (map: maplibregl.Map) => {
     if (map.getSource(sourceId)) map.removeSource(sourceId);
   }
 
-  if (anyMap._jobHoverEl) {
-    anyMap._jobHoverEl.remove();
-    anyMap._jobHoverEl = undefined;
+  if (anyMap._cycRatioHoverEl) {
+    anyMap._cycRatioHoverEl.remove();
+    anyMap._cycRatioHoverEl = undefined;
   }
-  anyMap._jobHoverBound = false;
-  anyMap._jobClickBound = false;
+  anyMap._cycRatioHoverBound = false;
+  anyMap._cycRatioClickBound = false;
+  anyMap._cycRatioFieldName = undefined;
+  anyMap._cycRatioFieldLabel = undefined;
 };
 
-// --- color ramp for job_den ---
-// Example values: 0, 0.127, 2.279, 3.086, 10, 17, etc
-// Buckets (you can tweak later):
-//   0 – 0.1
-//   0.1 – 0.5
-//   0.5 – 1
-//   1 – 2
-//   2 – 4
-//   4 – 8
-//   8 – 16
-//   16+
-const baseFillForJobDensity = (): any => {
+// --- color ramp for cyclist ratio ---
+// Values are ~0.0 to ~0.5 (maybe a bit more).
+// Buckets (in ratios, not %):
+//   0 – 0.02
+//   0.02 – 0.05
+//   0.05 – 0.10
+//   0.10 – 0.20
+//   0.20 – 0.30
+//   0.30 – 0.40
+//   0.40+
+const baseFillForCyclistRatio = (valueExpr: any): any => {
   return [
     "step",
-    ["to-number", ["get", VALUE_FIELD], 0],
+    valueExpr,
 
-    // 0 – 0.1
-    "#fefce8",
-    0.1, "#fef9c3",   // 0.1 – 0.5
-    0.5, "#fef08a",   // 0.5 – 1
-    1, "#fde047",   // 1 – 2
-    2, "#facc15",   // 2 – 4
-    4, "#eab308",   // 4 – 8
-    8, "#ca8a04",   // 8 – 16
-    16, "#854d0e"    // 16+
+    // 0 – 0.02
+    "#f9fafb",
+    0.02, "#e0f2fe", // 0.02 – 0.05
+    0.05, "#bae6fd", // 0.05 – 0.10
+    0.1, "#7dd3fc",  // 0.10 – 0.20
+    0.2, "#38bdf8",  // 0.20 – 0.30
+    0.3, "#0ea5e9",  // 0.30 – 0.40
+    0.4, "#0369a1",  // 0.40+
   ];
 };
 
-const fillColorWithHover = (): any => [
+const fillColorWithHover = (valueExpr: any): any => [
   "case",
   ["boolean", ["feature-state", "hover"], false],
   "#22c55e", // hover highlight (green)
-  baseFillForJobDensity(),
+  baseFillForCyclistRatio(valueExpr),
 ];
 
-export const ensureJobDensityLayer = (
+export const ensureCyclistRatioLayer = (
   map: maplibregl.Map,
-  city: CityId
+  city: CityId,
+  cyclistRatioType: CyclistRatioType
 ) => {
   if (!map.isStyleLoaded()) {
     map.once("style.load", () => {
-      ensureJobDensityLayer(map, city);
+      ensureCyclistRatioLayer(map, city, cyclistRatioType);
     });
     return;
   }
@@ -101,16 +119,26 @@ export const ensureJobDensityLayer = (
   const beforeId = getFirstSymbolLayerId(map);
   const anyMap = map as any;
 
+  const fieldName = getValueField(cyclistRatioType);
+  const valueExpr: any = ["to-number", ["get", fieldName], 0];
+  const fillColorExpr = fillColorWithHover(valueExpr);
+
+  // Show polygons only where value > 0
+  const fillOpacityExpr: any = [
+    "case",
+    [">", valueExpr, 0],
+    0.75,
+    0,
+  ];
+
   // 1) Source
   if (!map.getSource(sourceId)) {
     map.addSource(sourceId, {
       type: "vector",
       url: `${MARTIN_BASE_URL}/${sourceId}`,
-      promoteId: SA2_ID_FIELD,
+      promoteId: AREA_ID_FIELD,
     } as maplibregl.VectorSourceSpecification);
   }
-
-  const fillColorExpr = fillColorWithHover();
 
   // 2) Fill layer
   if (!map.getLayer(fillLayerId)) {
@@ -122,13 +150,14 @@ export const ensureJobDensityLayer = (
         "source-layer": sourceId,
         paint: {
           "fill-color": fillColorExpr,
-          "fill-opacity": 0.75,
+          "fill-opacity": fillOpacityExpr,
         },
       },
       beforeId || undefined
     );
   } else {
     map.setPaintProperty(fillLayerId, "fill-color", fillColorExpr);
+    map.setPaintProperty(fillLayerId, "fill-opacity", fillOpacityExpr);
   }
 
   // 3) Outline layer
@@ -149,16 +178,21 @@ export const ensureJobDensityLayer = (
     );
   }
 
-  // 4) Hover label (once per map, across all cities)
-  if (!anyMap._jobHoverBound) {
+  // Store current field + label so hover/click stay in sync
+  anyMap._cycRatioFieldName = fieldName;
+  anyMap._cycRatioFieldLabel =
+    CYCLIST_RATIO_LABEL[cyclistRatioType] ?? "Cyclist ratio";
+
+  // 4) Hover label (once per map – works across all cities)
+  if (!anyMap._cycRatioHoverBound) {
     let hoveredId: string | number | null = null;
     let hoveredSourceId: string | null = null;
 
     const container = map.getContainer();
-    let hoverEl = anyMap._jobHoverEl as HTMLDivElement | undefined;
+    let hoverEl = anyMap._cycRatioHoverEl as HTMLDivElement | undefined;
     if (!hoverEl) {
       hoverEl = document.createElement("div");
-      hoverEl.className = "sa2-job-hover-label";
+      hoverEl.className = "cyclist-ratio-hover-label";
       hoverEl.style.position = "absolute";
       hoverEl.style.pointerEvents = "none";
       hoverEl.style.padding = "4px 8px";
@@ -172,7 +206,7 @@ export const ensureJobDensityLayer = (
       hoverEl.style.display = "none";
       hoverEl.style.color = "#111";
       container.appendChild(hoverEl);
-      anyMap._jobHoverEl = hoverEl;
+      anyMap._cycRatioHoverEl = hoverEl;
     }
 
     // Attach layer-specific handlers for ALL city layers
@@ -180,7 +214,6 @@ export const ensureJobDensityLayer = (
       const { sourceId: citySourceId, fillLayerId: cityFillId } =
         getIdsForCity(c);
 
-      // Move within a fill polygon
       map.on(
         "mousemove",
         cityFillId,
@@ -190,16 +223,16 @@ export const ensureJobDensityLayer = (
 
           const id =
             feature.id ??
-            (SA2_ID_FIELD
-              ? (feature.properties?.[SA2_ID_FIELD] as
-                | string
-                | number
-                | undefined)
+            (AREA_ID_FIELD
+              ? (feature.properties?.[AREA_ID_FIELD] as
+                  | string
+                  | number
+                  | undefined)
               : undefined);
-          if (id == null) return;
 
-          // Clear previous highlight if different
+          // Optional highlight: only if we actually have an id
           if (
+            id != null &&
             hoveredId !== null &&
             hoveredSourceId &&
             (hoveredId !== id || hoveredSourceId !== citySourceId)
@@ -214,37 +247,48 @@ export const ensureJobDensityLayer = (
             );
           }
 
-          hoveredId = id;
-          hoveredSourceId = citySourceId;
+          if (id != null) {
+            hoveredId = id;
+            hoveredSourceId = citySourceId;
 
-          map.setFeatureState(
-            {
-              source: citySourceId,
-              sourceLayer: citySourceId,
-              id,
-            },
-            { hover: true }
-          );
+            map.setFeatureState(
+              {
+                source: citySourceId,
+                sourceLayer: citySourceId,
+                id,
+              },
+              { hover: true }
+            );
+          } else {
+            hoveredId = null;
+            hoveredSourceId = null;
+          }
 
           const name =
-            (SA2_NAME_FIELD &&
-              (feature.properties?.[SA2_NAME_FIELD] as string | undefined)) ??
+            (AREA_NAME_FIELD &&
+              (feature.properties?.[AREA_NAME_FIELD] as string | undefined)) ??
             (feature.properties?.name as string | undefined) ??
             "N/A";
 
-          const raw = feature.properties?.[VALUE_FIELD];
+          const activeFieldName: string =
+            (map as any)._cycRatioFieldName ?? "cyc_ratio";
+          const activeLabel: string =
+            (map as any)._cycRatioFieldLabel ?? "Cyclist ratio";
+
+          const raw = feature.properties?.[activeFieldName];
           let labelValue = "N/A";
           const num = Number(raw);
           if (raw != null && raw !== "" && Number.isFinite(num)) {
-            labelValue = num.toFixed(2);
+            // value is stored as ratio → show as %
+            labelValue = `${(num * 100).toFixed(1)}%`;
           }
 
           hoverEl!.innerHTML = `
-                    <div>${String(name)}</div>
-                    <div style="font-weight:400;">
-                      ${VALUE_FIELD}: ${labelValue}
-                    </div>
-                  `;
+            <div>${String(name)}</div>
+            <div style="font-weight:400;">
+              ${activeLabel}: ${labelValue}
+            </div>
+          `;
 
           const { x, y } = e.point;
           hoverEl!.style.left = `${x + 10}px`;
@@ -255,7 +299,6 @@ export const ensureJobDensityLayer = (
         }
       );
 
-      // When leaving that city layer
       map.on("mouseleave", cityFillId, () => {
         if (hoveredId !== null && hoveredSourceId) {
           map.setFeatureState(
@@ -274,11 +317,11 @@ export const ensureJobDensityLayer = (
       });
     }
 
-    anyMap._jobHoverBound = true;
+    anyMap._cycRatioHoverBound = true;
   }
 
   // 5) Click logging (once per map, per city layer)
-  if (!anyMap._jobClickBound) {
+  if (!anyMap._cycRatioClickBound) {
     for (const c of CITY_LIST) {
       const { fillLayerId: cityFillId } = getIdsForCity(c);
 
@@ -288,67 +331,54 @@ export const ensureJobDensityLayer = (
         (e: MapLayerMouseEvent) => {
           const feature = e.features?.[0];
           if (!feature) return;
-          console.log(
-            "Job density SA2 click:",
-            feature.layer.id,
-            feature.properties
-          );
+
+          const activeFieldName: string =
+            (map as any)._cycRatioFieldName ?? "cyc_ratio";
+          const activeLabel: string =
+            (map as any)._cycRatioFieldLabel ?? "Cyclist ratio";
+
+          console.log("Cyclist ratio click:", {
+            city: c,
+            field: activeFieldName,
+            label: activeLabel,
+            value: feature.properties?.[activeFieldName],
+            ...feature.properties,
+          });
         }
       );
     }
 
-    anyMap._jobClickBound = true;
+    anyMap._cycRatioClickBound = true;
   }
 };
 
-// Reuse this in the UI for legend rendering
-export const JOB_DENSITY_LEGEND: LegendItem[] = [
+export const CYCLIST_RATIO_LEGEND: LegendItem[] = [
   {
-    label: "0 – 0.1",
-    min: 0,
-    max: 0.1,
-    color: "#fefce8",
+    label: "0 – 2%",
+    color: "#f9fafb", // 0 – 0.02
   },
   {
-    label: "0.1 – 0.5",
-    min: 0.1,
-    max: 0.5,
-    color: "#fef9c3",
+    label: "2 – 5%",
+    color: "#e0f2fe", // 0.02 – 0.05
   },
   {
-    label: "0.5 – 1",
-    min: 0.5,
-    max: 1,
-    color: "#fef08a",
+    label: "5 – 10%",
+    color: "#bae6fd", // 0.05 – 0.10
   },
   {
-    label: "1 – 2",
-    min: 1,
-    max: 2,
-    color: "#fde047",
+    label: "10 – 20%",
+    color: "#7dd3fc", // 0.10 – 0.20
   },
   {
-    label: "2 – 4",
-    min: 2,
-    max: 4,
-    color: "#facc15",
+    label: "20 – 30%",
+    color: "#38bdf8", // 0.20 – 0.30
   },
   {
-    label: "4 – 8",
-    min: 4,
-    max: 8,
-    color: "#eab308",
+    label: "30 – 40%",
+    color: "#0ea5e9", // 0.30 – 0.40
   },
   {
-    label: "8 – 16",
-    min: 8,
-    max: 16,
-    color: "#ca8a04",
-  },
-  {
-    label: "16+",
-    min: 16,
-    max: null,
-    color: "#854d0e",
+    label: "40%+",
+    color: "#0369a1", // 0.40+
   },
 ];

@@ -1,6 +1,7 @@
 // src/features/map/layers/ensurePoiTransitLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -69,7 +70,7 @@ export const ensurePoiTransitLayer = (map: maplibregl.Map, city: CityId) => {
         "source-layer": sourceId,
         paint: {
           "circle-radius": 6,
-          "circle-color": "#6366f1", // indigo / purple-ish
+          "circle-color": "#7B3F00", // indigo / purple-ish
           "circle-opacity": 0.95,
           "circle-stroke-width": 1,
           "circle-stroke-color": "#ffffff",
@@ -109,3 +110,10 @@ export const ensurePoiTransitLayer = (map: maplibregl.Map, city: CityId) => {
     anyMap._poiTransitEventsBound = true;
   }
 };
+
+export const TRANSIT_POI_LEGEND: LegendItem[] = [
+  {
+    label: "Transit",
+    color: "#7B3F00",
+  },
+];

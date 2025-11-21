@@ -1,6 +1,7 @@
 // src/features/map/layers/ensureBoundaryUniversityLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -64,7 +65,7 @@ export const ensureBoundaryUniversityLayer = (
     } as maplibregl.VectorSourceSpecification);
   }
 
-  // 2) Fill layer – green multipolygons
+  // 2) Fill layer – purplke multipolygons
   if (!map.getLayer(fillLayerId)) {
     map.addLayer(
       {
@@ -73,7 +74,7 @@ export const ensureBoundaryUniversityLayer = (
         source: sourceId,
         "source-layer": sourceId,
         paint: {
-          "fill-color": "#22c55e", // green
+          "fill-color": "#800080",
           "fill-opacity": 0.6,
         },
       },
@@ -128,3 +129,10 @@ export const ensureBoundaryUniversityLayer = (
     anyMap._boundaryUniversityEventsBound = true;
   }
 };
+
+export const UNIVERSITY_POLYGON_LEGEND: LegendItem[] = [
+  {
+    label: "University",
+    color: "#800080",
+  },
+];

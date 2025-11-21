@@ -8,14 +8,23 @@ import React, {
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useAtom, useAtomValue } from "jotai";
-import { darkModeAtom, type CityId } from "@/atoms/GeneralAtom";
-import { activeLayerAtom, catchmentTypeAtom, catchmentMinsAtom } from "@/atoms/LayerAtom";
-import { activeCityAtom } from "@/atoms/GeneralAtom";
 
 import {
-  ensureBoundaryLgaLayer,
-  removeBoundaryLgaLayer,
-} from "@/features/map/layers/currentCyclingConditions/ensureBoundaryLgaLayer";
+  darkModeAtom,
+  mode3DAtom,
+  showMaskingLayerAtom,
+  type CityId,
+  activeCityAtom,
+} from "@/atoms/GeneralAtom";
+import {
+  activeLayerAtom,
+  catchmentTypeAtom,
+  catchmentMinsAtom,
+  cyclistRatioTypeAtom,
+  type CyclistRatioType,
+  purposeRatioTypeAtom,
+  type PurposeRatioType,
+} from "@/atoms/LayerAtom";
 import {
   ensureSevereAccidentLayer,
   removeSevereAccidentLayer,
@@ -35,17 +44,67 @@ import {
 
 import { CITY_VIEWS } from "./utils/MapLocations";
 import CityCombobox from "../combobox/CityCombobox";
-import { ensurePopulationDensityLayer, removePopulationDensityLayer } from "./layers/density/ensurePopulationDensityLayer";
-import { ensureJobDensityLayer, removeJobDensityLayer } from "./layers/density/ensureJobDensityLayer";
-import { ensurePoiSchoolLayer, removePoiSchoolLayer } from "./layers/poi/ensurePoiSchools";
-import { ensurePoiServiceLayer, removePoiServiceLayer } from "./layers/poi/ensurePoiService";
-import { ensurePoiTransitLayer, removePoiTransitLayer } from "./layers/poi/ensurePoiTransit";
-import { ensurePoiShoppingLayer, removePoiShoppingLayer } from "./layers/poi/ensurePoiShopping";
-import { ensureBoundaryUniversityLayer, removeBoundaryUniversityLayer } from "./layers/poi/ensureUniversityPolygon";
-import { ensureBoundaryParkLayer, removeBoundaryParkLayer } from "./layers/poi/ensureParkPolygon";
-import { ensureBikespotSafeLayer, removeBikespotSafeLayer } from "./layers/bikespot/ensureBikespotSafe";
-import { ensureBikespotUnsafeLayer, removeBikespotUnsafeLayer } from "./layers/bikespot/ensureBikespotUnsafe";
-import { ensureCatchmentLayer, removeCatchmentLayer } from "./layers/accessibility/ensureCatchmentLayer";
+
+import {
+  ensurePopulationDensityLayer,
+  removePopulationDensityLayer,
+} from "./layers/density/ensurePopulationDensityLayer";
+import {
+  ensureJobDensityLayer,
+  removeJobDensityLayer,
+} from "./layers/density/ensureJobDensityLayer";
+import {
+  ensurePoiSchoolLayer,
+  removePoiSchoolLayer,
+} from "./layers/poi/ensurePoiSchools";
+import {
+  ensurePoiServiceLayer,
+  removePoiServiceLayer,
+} from "./layers/poi/ensurePoiService";
+import {
+  ensurePoiTransitLayer,
+  removePoiTransitLayer,
+} from "./layers/poi/ensurePoiTransit";
+import {
+  ensurePoiShoppingLayer,
+  removePoiShoppingLayer,
+} from "./layers/poi/ensurePoiShopping";
+import {
+  ensureBoundaryUniversityLayer,
+  removeBoundaryUniversityLayer,
+} from "./layers/poi/ensureUniversityPolygon";
+import {
+  ensureBoundaryParkLayer,
+  removeBoundaryParkLayer,
+} from "./layers/poi/ensureParkPolygon";
+import {
+  ensureBikespotSafeLayer,
+  removeBikespotSafeLayer,
+} from "./layers/bikespot/ensureBikespotSafe";
+import {
+  ensureBikespotUnsafeLayer,
+  removeBikespotUnsafeLayer,
+} from "./layers/bikespot/ensureBikespotUnsafe";
+import {
+  ensureCatchmentLayer,
+  removeCatchmentLayer,
+} from "./layers/accessibility/ensureCatchmentLayer";
+
+import {
+  ensure3DBuildingsLayer,
+  remove3DBuildingsLayer,
+} from "./layers/3d/ensure3DBuildingsLayer";
+
+import {
+  ensureMaskingLayer,
+  removeMaskingLayer,
+} from "./layers/maskingLayer/ensureMaskingLayer";
+
+import Map3D from "../mapConfigs/map3D";
+import MapShowMasking from "../mapConfigs/mapShowMasking";
+import { ensureCyclistRatioLayer, removeCyclistRatioLayer } from "./layers/currentCyclingConditions/ensureCyclistRatioLayer";
+import { ensurePurposeRatioLayer, removePurposeRatioLayer } from "./layers/currentCyclingConditions/ensurePurposeRatioLayer";
+
 type Theme = "dark" | "light";
 
 interface MapProps {
@@ -66,7 +125,7 @@ function getDatavizStyleUrl(dark: boolean, apiKey: string) {
 // ---- Map component ----
 const Map: React.FC<MapProps> = ({
   apiKey = import.meta.env.VITE_MAPTILER_API_KEY as string,
-  center = [151.2093, -33.8688], // fallback initial center
+  center = [151.2093, -33.8688],
   zoom = 10,
   className,
 }) => {
@@ -75,11 +134,16 @@ const Map: React.FC<MapProps> = ({
   const currentStyleRef = useRef<string | null>(null);
 
   const isDark = useAtomValue<boolean>(darkModeAtom);
-  const [activeLayer] = useAtom<string | null>(activeLayerAtom);
+  const activeLayer = useAtomValue<string | null>(activeLayerAtom);
 
   const activeCity = useAtomValue<CityId>(activeCityAtom);
   const catchmentType = useAtomValue<string>(catchmentTypeAtom);
   const catchmentMins = useAtomValue<number>(catchmentMinsAtom);
+  const cyclistRatioType = useAtomValue<CyclistRatioType>(cyclistRatioTypeAtom);
+  const purposeRatioType = useAtomValue<PurposeRatioType>(purposeRatioTypeAtom);
+
+  const [is3D] = useAtom<boolean>(mode3DAtom);
+  const showMasking = useAtomValue<boolean>(showMaskingLayerAtom);
 
   // Compute style URL for current dark/light
   const styleUrlForTheme = useMemo(
@@ -87,10 +151,13 @@ const Map: React.FC<MapProps> = ({
     [isDark, apiKey]
   );
 
-  // 🔁 Re-add all custom overlays based on current UI state
+  // 🔁 Re-add all "thematic" overlays based on current UI state
+  // (DO NOT touch 3D buildings or masking here)
   const rehydrateCustomOverlays = useCallback(
     (map: maplibregl.Map) => {
-      removeBoundaryLgaLayer(map);
+      // Clear all toggleable thematic layers
+      removeCyclistRatioLayer(map);
+      removePurposeRatioLayer(map);
       removeSevereAccidentLayer(map);
       removeRoadNetworkLayer(map);
       removeExistingCyclingLayer(map);
@@ -106,9 +173,13 @@ const Map: React.FC<MapProps> = ({
       removeBikespotSafeLayer(map);
       removeBikespotUnsafeLayer(map);
       removeCatchmentLayer(map);
+
       switch (activeLayer) {
-        case "cycling-metrics":
-          ensureBoundaryLgaLayer(map, activeCity);
+        case "cyclist-ratio":
+          ensureCyclistRatioLayer(map, activeCity, cyclistRatioType);
+          break;
+        case "purpose-ratio":
+          ensurePurposeRatioLayer(map, activeCity, purposeRatioType);
           break;
         case "severe-cycling-crashes":
           ensureSevereAccidentLayer(map, activeCity);
@@ -122,67 +193,55 @@ const Map: React.FC<MapProps> = ({
         case "cycleway-network-connectivity":
           ensureNetworkIslandLayer(map, activeCity);
           break;
-        case "population-density": {
+        case "population-density":
           ensurePopulationDensityLayer(map, activeCity);
           break;
-        }
-        case "job-density": {
+        case "job-density":
           ensureJobDensityLayer(map, activeCity);
           break;
-        }
         case "poi-schools": {
-          const city = activeCity ?? "sydney";
-          ensurePoiSchoolLayer(map, city);
+          ensurePoiSchoolLayer(map, activeCity);
           break;
         }
         case "poi-service": {
-          const city = activeCity ?? "sydney";
-          ensurePoiServiceLayer(map, city);
+          ensurePoiServiceLayer(map, activeCity);
           break;
         }
         case "poi-transit": {
-          const city = activeCity ?? "sydney";
-          ensurePoiTransitLayer(map, city);
+          ensurePoiTransitLayer(map, activeCity);
           break;
         }
         case "poi-shopping": {
-          const city = activeCity ?? "sydney";
-          ensurePoiShoppingLayer(map, city);
+          ensurePoiShoppingLayer(map, activeCity);
           break;
         }
         case "university-polygon": {
-          const city = activeCity ?? "sydney";
-          ensureBoundaryUniversityLayer(map, city);
+          ensureBoundaryUniversityLayer(map, activeCity);
           break;
         }
         case "park-polygon": {
-          const city = activeCity ?? "sydney";
-          ensureBoundaryParkLayer(map, city);
+          ensureBoundaryParkLayer(map, activeCity);
           break;
         }
         case "bikespot-safe": {
-          const city = activeCity ?? "sydney";
-          ensureBikespotSafeLayer(map, city);
+          ensureBikespotSafeLayer(map, activeCity);
           break;
         }
         case "bikespot-unsafe": {
-          const city = activeCity ?? "sydney";
-          ensureBikespotUnsafeLayer(map, city);
+          ensureBikespotUnsafeLayer(map, activeCity);
           break;
         }
         case "catchment": {
-          const city = activeCity ?? "sydney";
           const type = catchmentType ?? "park";
-          const mins = catchmentMins ?? "5";
-          console.log(city, type, mins)
-          ensureCatchmentLayer(map, city, type, mins);
+          const mins = catchmentMins ?? 5;
+          ensureCatchmentLayer(map, activeCity, type, mins);
           break;
         }
         default:
           break;
       }
     },
-    [activeLayer, activeCity, catchmentType, catchmentMins]
+    [activeLayer, activeCity, catchmentType, catchmentMins, cyclistRatioType, purposeRatioType]
   );
 
   // 1️⃣ Init map once
@@ -205,26 +264,45 @@ const Map: React.FC<MapProps> = ({
     });
 
     mapRef.current = map;
-    // map.addControl(new maplibregl.NavigationControl(), "top-right");
 
     map.on("load", () => {
       map.resize();
+
+      if (showMasking) {
+        ensureMaskingLayer(map);    // mask inserted directly under 3D
+      }
       rehydrateCustomOverlays(map);
     });
 
     return () => {
-      removeBoundaryLgaLayer(map);
+      // Clean thematic overlays
       removeSevereAccidentLayer(map);
       removeRoadNetworkLayer(map);
       removeExistingCyclingLayer(map);
       removeNetworkIslandLayer(map);
+      removePopulationDensityLayer(map);
+      removeJobDensityLayer(map);
+      removePoiSchoolLayer(map);
+      removePoiServiceLayer(map);
+      removePoiTransitLayer(map);
+      removePoiShoppingLayer(map);
+      removeBoundaryUniversityLayer(map);
+      removeBoundaryParkLayer(map);
+      removeBikespotSafeLayer(map);
+      removeBikespotUnsafeLayer(map);
+      removeCatchmentLayer(map);
+
+      // Also clean always-on layers
+      remove3DBuildingsLayer(map);
+      removeMaskingLayer(map);
+
       map.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2️⃣ Switch base style when dark mode changes
+  // 2️⃣ Switch base style when dark mode changes (or map tiles change)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -237,11 +315,11 @@ const Map: React.FC<MapProps> = ({
 
     const onStyleLoad = () => {
       map.resize();
-      rehydrateCustomOverlays(map);
+      ensure3DBuildingsLayer(map);
       map.off("style.load", onStyleLoad);
     };
-
     map.on("style.load", onStyleLoad);
+    rehydrateCustomOverlays(map);
   }, [styleUrlForTheme, rehydrateCustomOverlays]);
 
   // 3️⃣ When activeLayer changes, just (re)ensure overlays
@@ -267,6 +345,60 @@ const Map: React.FC<MapProps> = ({
     });
   }, [activeCity]);
 
+  // 5️⃣ Camera tilt for 3D mode
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    map.easeTo({
+      pitch: is3D ? 60 : 0,
+      bearing: is3D ? -30 : 0,
+      duration: 800,
+      easing: (t) => t * (2 - t),
+      essential: true,
+    });
+  }, [is3D]);
+
+  // 6️⃣ 3D building *layer* – separate from camera tilt
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const apply3D = () => {
+      if (is3D) {
+        ensure3DBuildingsLayer(map);
+      } else {
+        remove3DBuildingsLayer(map);
+      }
+    };
+
+    if (!map.isStyleLoaded()) {
+      map.once("style.load", apply3D);
+    } else {
+      apply3D();
+    }
+  }, [is3D, styleUrlForTheme]);
+
+  // 7️⃣ Masking layer – independent of activeLayer
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const applyMask = () => {
+      if (showMasking) {
+        ensureMaskingLayer(map);
+      } else {
+        removeMaskingLayer(map);
+      }
+    };
+
+    if (!map.isStyleLoaded()) {
+      map.once("style.load", applyMask);
+    } else {
+      applyMask();
+    }
+  }, [showMasking, styleUrlForTheme]);
+
   return (
     <div
       className={className}
@@ -279,6 +411,12 @@ const Map: React.FC<MapProps> = ({
       {/* City combobox in top-left */}
       <div className="absolute top-2 left-2 z-10">
         <CityCombobox />
+      </div>
+
+      {/* 3D + Masking controls in top-right */}
+      <div className="flex flex-col absolute top-2 right-2 z-10">
+        <Map3D />
+        <MapShowMasking />
       </div>
 
       {/* Map container */}

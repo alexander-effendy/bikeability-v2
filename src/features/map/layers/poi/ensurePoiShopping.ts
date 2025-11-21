@@ -1,6 +1,7 @@
 // src/features/map/layers/ensurePoiShoppingLayer.ts
 import maplibregl from "maplibre-gl";
 import type { CityId } from "@/atoms/GeneralAtom"; // "sydney" | "melbourne" | "brisbane" | "perth"
+import type { LegendItem } from "../../layersLegend/LegendInfo";
 
 const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 
@@ -112,3 +113,10 @@ export const ensurePoiShoppingLayer = (
     anyMap._poiShoppingEventsBound = true;
   }
 };
+
+export const SHOPPING_POI_LEGEND: LegendItem[] = [
+  {
+    label: "Shopping",
+    color: "#ec4899",
+  },
+];
