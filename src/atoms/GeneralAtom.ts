@@ -7,3 +7,4 @@ export const darkModeAtom = atom<boolean>(true);
 export const activeCityAtom = atom<CityId>('sydney');
 export const mode3DAtom = atom<boolean>(false);
 export const showMaskingLayerAtom = atom<boolean>(true);
+export const changelogOpenAtom = atom<boolean>(false);

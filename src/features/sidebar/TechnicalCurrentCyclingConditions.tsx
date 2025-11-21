@@ -96,7 +96,7 @@ const TechnicalCurrentCyclingConditions = () => {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="h-10 border-b border-sidebar-border flex items-center p-4">
+      <div className="h-10 border-b border-foreground flex items-center p-4">
         Current Cycling Conditions
       </div>
 
@@ -108,7 +108,7 @@ const TechnicalCurrentCyclingConditions = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-sidebar-border"
+          className="border border-foreground"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -224,7 +224,7 @@ const TechnicalCurrentCyclingConditions = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-sidebar-border"
+          className="border border-foreground"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -334,7 +334,7 @@ const TechnicalCurrentCyclingConditions = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-sidebar-border"
+          className="border border-foreground"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">

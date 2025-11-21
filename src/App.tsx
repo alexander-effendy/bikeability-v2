@@ -5,6 +5,7 @@ import './scroll.css'
 import Navbar from './features/navbar/Navbar';
 import Technical from './features/sidebar/Technical';
 import Footer from './features/footer/Footer';
+import ChangeLogModal from './features/dialog/Changelog';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       }}
       className='flex flex-col h-dvh overflow-hidden'
     >
+      <ChangeLogModal />
       <Navbar />
       <Technical />
       <Footer />
