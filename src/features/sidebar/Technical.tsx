@@ -1,7 +1,7 @@
 import { darkModeAtom, technicalActiveAtom } from "@/atoms/GeneralAtom";
 import { Button } from "@/components/ui/button";
-import { useAtom } from "jotai";
-import { Bike, Accessibility } from "lucide-react";
+import { useAtom, useSetAtom } from "jotai";
+import { Bike, Accessibility, ChartColumnIncreasing } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
@@ -17,9 +17,12 @@ import TechnicalDensity from "./TechnicalDensity";
 import TechnicalPoi from "./TechnicalPoi";
 import TechnicalBikeSpot from "./TechnicalBikeSpot";
 import TechnicalAccessibility from "./TechnicalAccessibility";
+import { activeLayerAtom } from "@/atoms/LayerAtom";
+import TechnicalRunModel from "./TechnicalRunModel";
 
 const Technical = () => {
   const [technicalActive, setTechnicalActive] = useAtom(technicalActiveAtom);
+  const setActiveLayer = useSetAtom(activeLayerAtom);
   const [darkMode, setDarkMode] = useAtom(darkModeAtom);
 
   const toggleDarkMode = () => {
@@ -140,6 +143,26 @@ const Technical = () => {
             </Tooltip>
           </div>
 
+          <div>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => {
+                    setActiveLayer('road-network')
+                    setTechnicalActive("run-models")
+                  }}
+                  className="p-2 hover:opacity-80"
+                >
+                  <ChartColumnIncreasing />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Run Models</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
           {/* THEME TOGGLE – no glow logic here */}
           <div className="w-10 flex flex-col items-center gap-2 py-2 shrink-0">
             <Tooltip>
@@ -160,7 +183,7 @@ const Technical = () => {
       </TooltipProvider>
 
       {/* RIGHT SIDEBAR CONTENT */}
-      <div className="w-100 border-r border-foreground">
+      <div className={`${technicalActive === 'run-models' ? 'w-150' : 'w-100'} transition-all duration-2000 border-r border-foreground`}>
         {technicalActive === "current-cycling-conditions" && (
           <TechnicalCurrentCyclingConditions />
         )}
@@ -169,6 +192,7 @@ const Technical = () => {
         {technicalActive === "poi" && <TechnicalPoi />}
         {technicalActive === "bikespot" && <TechnicalBikeSpot />}
         {technicalActive === "accessibility" && <TechnicalAccessibility />}
+        {technicalActive === "run-models" && <TechnicalRunModel />}
       </div>
 
       {/* MAP AREA */}

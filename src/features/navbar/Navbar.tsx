@@ -13,7 +13,7 @@ const Navbar = () => {
   const setOpenLog = useSetAtom(changelogOpenAtom);
 
   return (
-    <div className="w-full h-12 flex items-center justify-between px-2 top-0 left-0 z-50 border-b border-foreground">
+    <div className="w-full h-12 flex items-center justify-between px-4 top-0 left-0 z-50 border-b border-foreground">
       <span>NCDAP Bikeability v2.0</span>
       <TooltipProvider delayDuration={200}>
         <Tooltip>

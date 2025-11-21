@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/command";
 
 import { cn } from "@/lib/utils"; // if you have this helper; if not, remove cn() and className logic
-import { ROAD_NETWORK_LINE_LEGEND } from "../map/layers/roadNetworks/ensureRoadNetworkLayer";
+// import { ROAD_NETWORK_LINE_LEGEND } from "../map/layers/roadNetworks/ensureRoadNetworkLayer";
 import { EXISTING_CYCLING_LINE_LEGEND } from "../map/layers/roadNetworks/ensureExistingCyclingLayer";
 import { NETWORK_ISLAND_LINE_LEGEND } from "../map/layers/roadNetworks/ensureNetworkIslandLayer";
 
@@ -66,7 +66,7 @@ const TechnicalNetworkLayers = () => {
         className="p-4 flex flex-col gap-4 overflow-y-auto soft-scrollbar-right"
       >
         {/* --- Road Network --- */}
-        <Accordion
+        {/* <Accordion
           type="single"
           defaultValue="item-1"
           className="border border-foreground"
@@ -117,7 +117,7 @@ const TechnicalNetworkLayers = () => {
               </div>
             </AccordionContent>
           </AccordionItem>
-        </Accordion>
+        </Accordion> */}
 
         {/* --- Existing Cycling Infrastructure --- */}
         <Accordion

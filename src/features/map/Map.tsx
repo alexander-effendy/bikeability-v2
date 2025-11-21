@@ -8,6 +8,8 @@ import React, {
 import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useAtom, useAtomValue } from "jotai";
+import { clickedRoadsAtom, submittedRoadsAtom } from "@/atoms/ModelAtom";
+import { syncSelectedRoadsOnMap, syncSubmittedRoadsOnMap } from "./layers/roadNetworks/ensureRoadNetworkLayer";
 
 import {
   darkModeAtom,
@@ -15,6 +17,7 @@ import {
   showMaskingLayerAtom,
   type CityId,
   activeCityAtom,
+  technicalActiveAtom,
 } from "@/atoms/GeneralAtom";
 import {
   activeLayerAtom,
@@ -135,6 +138,8 @@ const Map: React.FC<MapProps> = ({
   const currentStyleRef = useRef<string | null>(null);
 
   const isDark = useAtomValue<boolean>(darkModeAtom);
+
+  const technicalActive = useAtomValue<string>(technicalActiveAtom);
   const activeLayer = useAtomValue<string | null>(activeLayerAtom);
 
   const activeCity = useAtomValue<CityId>(activeCityAtom);
@@ -143,18 +148,17 @@ const Map: React.FC<MapProps> = ({
   const cyclistRatioType = useAtomValue<CyclistRatioType>(cyclistRatioTypeAtom);
   const purposeRatioType = useAtomValue<PurposeRatioType>(purposeRatioTypeAtom);
   const networkIslandLength = useAtomValue(networkIslandLengthAtom);
+  const clickedRoadsValue = useAtomValue(clickedRoadsAtom);
+  const submittedRoads = useAtomValue(submittedRoadsAtom);
 
   const [is3D] = useAtom<boolean>(mode3DAtom);
   const showMasking = useAtomValue<boolean>(showMaskingLayerAtom);
 
-  // Compute style URL for current dark/light
   const styleUrlForTheme = useMemo(
     () => getDatavizStyleUrl(isDark, apiKey),
     [isDark, apiKey]
   );
 
-  // 🔁 Re-add all "thematic" overlays based on current UI state
-  // (DO NOT touch 3D buildings or masking here)
   const rehydrateCustomOverlays = useCallback(
     (map: maplibregl.Map) => {
       // Clear all toggleable thematic layers
@@ -271,13 +275,12 @@ const Map: React.FC<MapProps> = ({
       map.resize();
 
       if (showMasking) {
-        ensureMaskingLayer(map);    // mask inserted directly under 3D
+        ensureMaskingLayer(map);
       }
       rehydrateCustomOverlays(map);
     });
 
     return () => {
-      // Clean thematic overlays
       removeSevereAccidentLayer(map);
       removeRoadNetworkLayer(map);
       removeExistingCyclingLayer(map);
@@ -294,7 +297,6 @@ const Map: React.FC<MapProps> = ({
       removeBikespotUnsafeLayer(map);
       removeCatchmentLayer(map);
 
-      // Also clean always-on layers
       remove3DBuildingsLayer(map);
       removeMaskingLayer(map);
 
@@ -304,7 +306,22 @@ const Map: React.FC<MapProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2️⃣ Switch base style when dark mode changes (or map tiles change)
+  // 🔄 Keep cyan selected roads layer in sync with clickedRoads atom
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    syncSelectedRoadsOnMap(map, clickedRoadsValue);
+  }, [clickedRoadsValue]);
+
+  // keep painted/segmented layers in sync
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    syncSubmittedRoadsOnMap(map, submittedRoads);
+  }, [submittedRoads]);
+
+  // 2️⃣ Switch base style when dark mode changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -324,14 +341,14 @@ const Map: React.FC<MapProps> = ({
     rehydrateCustomOverlays(map);
   }, [styleUrlForTheme, rehydrateCustomOverlays]);
 
-  // 3️⃣ When activeLayer changes, just (re)ensure overlays
+  // 3️⃣ When activeLayer changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     rehydrateCustomOverlays(map);
   }, [rehydrateCustomOverlays]);
 
-  // 4️⃣ When activeCity changes, flyTo the corresponding center/zoom
+  // 4️⃣ When activeCity changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !activeCity) return;
@@ -361,7 +378,7 @@ const Map: React.FC<MapProps> = ({
     });
   }, [is3D]);
 
-  // 6️⃣ 3D building *layer* – separate from camera tilt
+  // 6️⃣ 3D buildings layer
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -381,7 +398,7 @@ const Map: React.FC<MapProps> = ({
     }
   }, [is3D, styleUrlForTheme]);
 
-  // 7️⃣ Masking layer – independent of activeLayer
+  // 7️⃣ Masking layer
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -401,6 +418,8 @@ const Map: React.FC<MapProps> = ({
     }
   }, [showMasking, styleUrlForTheme]);
 
+  const isRunModelsMode = technicalActive === "run-models";
+
   return (
     <div
       className={className}
@@ -410,25 +429,39 @@ const Map: React.FC<MapProps> = ({
         height: "100%",
       }}
     >
-      {/* City combobox in top-left */}
-      <div className="absolute top-2 left-2 z-10">
-        <CityCombobox />
-      </div>
-
-      {/* 3D + Masking controls in top-right */}
-      <div className="flex flex-col absolute top-2 right-2 z-10">
-        <Map3D />
-        <MapShowMasking />
-      </div>
-
-      {/* Map container */}
+      {/* Glow wrapper around the actual map */}
       <div
-        ref={containerRef}
-        style={{
-          position: "absolute",
-          inset: 0,
-        }}
-      />
+        className={`relative w-full h-full overflow-hidden transition-shadow duration-2000 ${isRunModelsMode ? "" : "border border-border"
+          }`}
+        style={
+          isRunModelsMode
+            ? {
+              boxShadow:
+                "0 0 0 2px rgba(52,211,153,0.9), 0 0 25px rgba(16,185,129,0.9)",
+            }
+            : undefined
+        }
+      >
+        {/* City combobox in top-left */}
+        <div className="absolute top-2 left-2 z-10">
+          <CityCombobox />
+        </div>
+
+        {/* 3D + Masking controls in top-right */}
+        <div className="flex flex-col absolute top-2 right-2 z-10">
+          <Map3D />
+          <MapShowMasking />
+        </div>
+
+        {/* Map container */}
+        <div
+          ref={containerRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+          }}
+        />
+      </div>
     </div>
   );
 };
