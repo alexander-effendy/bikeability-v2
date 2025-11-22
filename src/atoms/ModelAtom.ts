@@ -29,3 +29,21 @@ export const submittedRoadsAtom = atom<SubmittedRoadsState>({
   separated: [],
   quiet: [],
 });
+
+export type ComputeLengthRawResponse = {
+  sa1_code21: Record<string, string>;
+  painted: Record<string, number>;
+  separated: Record<string, number>;
+  quiet: Record<string, number>;
+};
+
+// normalized row (what `normaliseResponse` returns)
+export type NormalizedComputeLengthRow = {
+  sa1_code21: string;
+  painted: number;
+  separated: number;
+  quiet: number;
+};
+
+// this is what you actually want to store
+export const computedRoadsAtom = atom<NormalizedComputeLengthRow[]>([]);

@@ -14,9 +14,11 @@ import { Button } from "@/components/ui/button";
 
 import {
   clickedRoadsAtom,
+  computedRoadsAtom,
   roadSegmentActiveAtom,
   submittedRoadsAtom,
   type RoadSegmentType,
+  type SubmittedRoadsState,
 } from "@/atoms/ModelAtom";
 
 import {
@@ -27,23 +29,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEffect } from "react";
-import { computeLengthFromSegmentFID } from "@/api/routes/model";
+
+import {
+  computeLengthFromSegmentFID,
+  calculateAccessibility,
+  calculatePredictionModel,
+  calculatePotentialModel,
+} from "@/api/routes/model";
+
 import { activeCityAtom, type CityId } from "@/atoms/GeneralAtom";
+import { normaliseResponse } from "@/lib/modelHelper";
 
 const TechnicalRunModel = () => {
   const [layerActive, setLayerActive] = useAtom<string | null>(activeLayerAtom);
   const [roads, setRoads] = useAtom(clickedRoadsAtom);
-  const [segment, setSegment] = useAtom(roadSegmentActiveAtom);
-  const [submitted, setSubmitted] = useAtom(submittedRoadsAtom);
+  const [segment, setSegment] = useAtom<RoadSegmentType>(roadSegmentActiveAtom);
+  const [submitted, setSubmitted] = useAtom<SubmittedRoadsState>(submittedRoadsAtom);
+  const [computedRoads, setComputedRoads] = useAtom(computedRoadsAtom);
   const activeCity = useAtomValue<CityId>(activeCityAtom);
 
   useEffect(() => {
-    console.log(roads);
-  }, [roads])
-
-  useEffect(() => {
-    console.log(submitted)
-  }, [submitted])
+    console.log('computed roads:')
+    console.log(computedRoads)
+  }, [computedRoads])
 
   const toggleLayer = (layerName: string) => {
     if (layerActive === layerName) {
@@ -92,7 +100,9 @@ const TechnicalRunModel = () => {
         bikepathtype,
       });
 
-      console.log("Length result from backend:", result);
+      const res = normaliseResponse(result);
+      console.log(res)
+      setComputedRoads(res);
 
     } catch (error) {
       console.error("Failed to compute length", error);
@@ -103,35 +113,69 @@ const TechnicalRunModel = () => {
     setRoads([]);
   };
 
-  // const handleSubmit = () => {
-  //   console.log(roads); // this are array of objects, each object is road with gid, and other keys but i only need the gid
-  //   console.log(segment) // this is quiet, separated, or painted
-  //   if (roads.length === 0) return;
+  const handleRunModels = async () => {
+    if (computedRoads.length === 0) {
+      console.warn("No computed roads to run models on.");
+      return;
+    }
 
-  //   // setSubmitted((prev) => {
-  //   //   const existing = prev[segment];
+    // Build "changes" payload in the format expected by the backend
+    const changes = computedRoads.reduce(
+      (acc, row, index) => {
+        const key = String(index);
+        acc.sa1_code21[key] = row.sa1_code21;
+        acc.painted[key] = row.painted;
+        acc.separated[key] = row.separated;
+        acc.quiet[key] = row.quiet;
+        return acc;
+      },
+      {
+        sa1_code21: {} as Record<string, string>,
+        painted: {} as Record<string, number>,
+        separated: {} as Record<string, number>,
+        quiet: {} as Record<string, number>,
+      }
+    );
 
-  //   //   const dedupedToAdd = roads.filter(
-  //   //     (r) => !existing.some((e) => e.gid === r.gid && e.city === r.city)
-  //   //   );
+    const accessibilityPayload = {
+      userid: 1,
+      location: activeCity,
+      modelyear: "2025",
+      changes,
+    };
 
-  //   //   return {
-  //   //     ...prev,
-  //   //     [segment]: [...existing, ...dedupedToAdd],
-  //   //   };
-  //   // });
+    const predictionPayload = {
+      userid: 1,
+      location: activeCity,
+      modelyear: "2025",
+      scenarios: "perceptions1%",
+      changes,
+    }
 
-  //   setRoads([]);
-  // };
+    const potentialPayload = {
+      userid: 1,
+      location: activeCity,
+      modelyear: "2025",
+      scenarios: "cbd_perceptions",
+      changes,
+    }
 
-  // const handleRunModel = () => {
-  //   console.log("running model with submitted roads", submitted);
-  // };
+    try {
+      const [accessRes, predRes, potRes] = await Promise.all([
+        calculateAccessibility(accessibilityPayload),
+        calculatePredictionModel(predictionPayload),
+        calculatePotentialModel(potentialPayload),
+      ]);
 
-  const totalPainted = submitted.painted.length;
-  const totalSeparated = submitted.separated.length;
-  const totalQuiet = submitted.quiet.length;
-  const totalSubmitted = totalPainted + totalSeparated + totalQuiet;
+      console.log("Accessibility result:", accessRes);
+      console.log("Prediction result:", predRes);
+      console.log("Potential result:", potRes);
+
+      // Later: put these into atoms / show in UI
+    } catch (err) {
+      console.error("Failed to run models", err);
+    }
+  };
 
   return (
     <div className="flex flex-col">
@@ -210,7 +254,7 @@ const TechnicalRunModel = () => {
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
               <div className="flex items-center gap-2">
-                <span>Select Roads</span>
+                <span>1. Select Roads</span>
               </div>
             </AccordionTrigger>
 
@@ -308,8 +352,114 @@ const TechnicalRunModel = () => {
           </AccordionItem>
         </Accordion>
 
-        {/* Submitted Roads – summary + TABLE */}
+        {/* Computed Roads – summary + TABLE */}
+        <Accordion
+          type="single"
+          defaultValue="item-1"
+          className="border border-foreground"
+        >
+          <AccordionItem value="item-1" className="p-4">
+            <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
+              <div className="flex items-center gap-2">
+                <span>2. Computed Road Lengths</span>
+              </div>
+            </AccordionTrigger>
 
+            <AccordionContent className="mt-5 pb-0 text-xs space-y-4">
+              {computedRoads.length === 0 ? (
+                <p className="text-muted-foreground italic">
+                  No computed lengths yet. Add roads and submit them to see
+                  length by SA1.
+                </p>
+              ) : (
+                <>
+                  {/* Summary */}
+                  <div className="border rounded-md p-3 space-y-1 bg-background/40">
+                    <p className="font-medium">Summary (total metres)</p>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground block">
+                          Painted
+                        </span>
+                        <span>
+                          {computedRoads
+                            .reduce((sum, r) => sum + r.painted, 0)
+                            .toFixed(1)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">
+                          Separated
+                        </span>
+                        <span>
+                          {computedRoads
+                            .reduce((sum, r) => sum + r.separated, 0)
+                            .toFixed(1)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block">
+                          Quiet
+                        </span>
+                        <span>
+                          {computedRoads
+                            .reduce((sum, r) => sum + r.quiet, 0)
+                            .toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-background/60">
+                          <th className="px-2 py-1 text-left w-10">#</th>
+                          <th className="px-2 py-1 text-left">SA1 code</th>
+                          <th className="px-2 py-1 text-right">Painted (m)</th>
+                          <th className="px-2 py-1 text-right">
+                            Separated (m)
+                          </th>
+                          <th className="px-2 py-1 text-right">Quiet (m)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {computedRoads.map((row, idx) => (
+                          <tr key={row.sa1_code21} className="border-t">
+                            <td className="px-2 py-1 align-top">{idx + 1}</td>
+                            <td className="px-2 py-1 align-top">
+                              {row.sa1_code21}
+                            </td>
+                            <td className="px-2 py-1 align-top text-right">
+                              {row.painted.toFixed(1)}
+                            </td>
+                            <td className="px-2 py-1 align-top text-right">
+                              {row.separated.toFixed(1)}
+                            </td>
+                            <td className="px-2 py-1 align-top text-right">
+                              {row.quiet.toFixed(1)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="pt-2">
+                    <Button
+                      className="w-full border border-muted rounded-none bg-primary text-foreground hover:bg-primary/90"
+                      size="sm"
+                      onClick={handleRunModels}
+                      disabled={computedRoads.length === 0}
+                    >
+                      Run model
+                    </Button>
+                  </div>
+                </>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </div>
   );

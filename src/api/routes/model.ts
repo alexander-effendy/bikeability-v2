@@ -45,3 +45,42 @@ export async function computeLengthFromSegmentFID(
 
   return res.data;
 }
+
+// ----- shared types for modelling calls -----
+export type ChangesPayload = {
+  sa1_code21: Record<string, string>;
+  painted: Record<string, number>;
+  separated: Record<string, number>;
+  quiet: Record<string, number>;
+};
+
+export type ModelRunPayload = {
+  userid: number;
+  location: string;
+  modelyear: string;
+  changes: ChangesPayload;
+};
+
+export async function calculateAccessibility(payload: ModelRunPayload) {
+  const res = await apiClient.post(
+    "/fastapi/calculateAccessibility/",
+    payload
+  );
+  return res.data;
+}
+
+export async function calculatePredictionModel(payload: ModelRunPayload) {
+  const res = await apiClient.post(
+    "/fastapi/calculatePredictionModel/",
+    payload
+  );
+  return res.data;
+}
+
+export async function calculatePotentialModel(payload: ModelRunPayload) {
+  const res = await apiClient.post(
+    "/fastapi/calculatePotentialModel/",
+    payload
+  );
+  return res.data;
+}
