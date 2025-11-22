@@ -1,5 +1,5 @@
 // src/lib/api/model.ts
-import { apiClient } from "./client";
+import { apiClient } from "../lib/client";
 import type { CityId } from "@/atoms/GeneralAtom";
 import type { RoadSegmentType } from "@/atoms/ModelAtom";
 
