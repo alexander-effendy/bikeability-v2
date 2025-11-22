@@ -45,7 +45,7 @@ const MapModelResults = () => {
         onClick={() => setIsOpen(true)}
         className="
           absolute bottom-2 right-2 z-10
-          rounded-full bg-background/95 border border-foreground
+          rounded-full bg-background/95 border border-sidebar-border
           shadow-lg p-2
           flex items-center justify-center
           hover:bg-accent hover:text-accent-foreground
@@ -79,7 +79,7 @@ const MapModelResults = () => {
         className="
           relative
           bg-background/95 backdrop-blur
-          border border-foreground rounded-md shadow-lg
+          border border-sidebar-border rounded-md shadow-lg
           p-3 text-xs text-card-foreground
           max-h-full overflow-y-auto
         "
@@ -278,10 +278,10 @@ const MapModelResults = () => {
         {/* Economic Benefits */}
         {economicAnnualBenefit !== null && (
           <div className="mt-2 border-t border-border pt-2 space-y-1">
-            <div className="font-semibold text-sm">
+            <div className="font-semibold text-xs">
               Economic benefits (annual)
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
                 Estimated benefit per year
               </span>
@@ -292,7 +292,7 @@ const MapModelResults = () => {
                 })}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground leading-snug">
+            <p className="text-xs text-muted-foreground leading-snug">
               Calculation = Additional transport cycling trips (per week) ×
               2.85 km × $1.06 per km × 52 weeks
             </p>

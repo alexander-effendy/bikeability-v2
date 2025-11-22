@@ -118,7 +118,7 @@ const TechnicalRunModel = () => {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="h-10 border-b border-foreground flex items-center justify-between p-4">
+      <div className="h-10 border-b border-sidebar-border flex items-center justify-between p-4">
         <span>Run Model</span>
         <Button size="icon" variant="outline">
           <Info className="h-4 w-4" />
@@ -133,7 +133,7 @@ const TechnicalRunModel = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -187,7 +187,7 @@ const TechnicalRunModel = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -262,7 +262,7 @@ const TechnicalRunModel = () => {
                     value={segment}
                     onValueChange={(value) => setSegment(value as RoadSegmentType)}
                   >
-                    <SelectTrigger className="h-8 text-xs w-full border border-foreground rounded-none shadow-none">
+                    <SelectTrigger className="h-8 text-xs w-full border border-sidebar-border rounded-none shadow-none">
                       <SelectValue placeholder="Choose segment type" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
@@ -277,7 +277,7 @@ const TechnicalRunModel = () => {
               {roads.length > 0 && (
                 <div>
                   <Button
-                    className="w-full border border-foreground rounded-none bg-accent-foreground text-background hover:bg-accent-foreground/90"
+                    className="w-full border border-sidebar-border rounded-none bg-accent-foreground text-background hover:bg-accent-foreground/90"
                     size="sm"
                     disabled={roads.length === 0}
                     onClick={handleSubmit}
@@ -295,7 +295,7 @@ const TechnicalRunModel = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -386,7 +386,7 @@ const TechnicalRunModel = () => {
               {/* Run model button */}
               <div>
                 <Button
-                  className="w-full border border-foreground rounded-none bg-accent-foreground text-background hover:bg-accent-foreground/90"
+                  className="w-full border border-sidebar-border rounded-none bg-accent-foreground text-background hover:bg-accent-foreground/90"
                   size="sm"
                   disabled={totalSubmitted === 0}
                   onClick={handleRunModel}

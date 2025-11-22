@@ -1,0 +1,48 @@
+.map-glow-cycle {
+  border: 1px solid rgba(148, 163, 184, 0.7); /* similar to border-border */
+  box-shadow:
+    0 0 0 2px rgba(52, 211, 153, 0.9),
+    0 0 25px rgba(16, 185, 129, 0.9);
+  animation: map-glow-cycle 18s linear infinite;
+}
+
+/* emerald → orange → purple → yellow → red → blue → emerald */
+@keyframes map-glow-cycle {
+  0%,
+  100% {
+    /* emerald */
+    box-shadow:
+      0 0 0 2px rgba(52, 211, 153, 0.9),
+      0 0 25px rgba(16, 185, 129, 0.9);
+  }
+  16% {
+    /* orange */
+    box-shadow:
+      0 0 0 2px rgba(249, 115, 22, 0.9),
+      0 0 25px rgba(251, 146, 60, 0.9);
+  }
+  33% {
+    /* purple */
+    box-shadow:
+      0 0 0 2px rgba(168, 85, 247, 0.9),
+      0 0 25px rgba(192, 132, 252, 0.9);
+  }
+  50% {
+    /* yellow */
+    box-shadow:
+      0 0 0 2px rgba(234, 179, 8, 0.9),
+      0 0 25px rgba(250, 204, 21, 0.9);
+  }
+  66% {
+    /* red */
+    box-shadow:
+      0 0 0 2px rgba(239, 68, 68, 0.9),
+      0 0 25px rgba(248, 113, 113, 0.9);
+  }
+  83% {
+    /* blue */
+    box-shadow:
+      0 0 0 2px rgba(59, 130, 246, 0.9),
+      0 0 25px rgba(96, 165, 250, 0.9);
+  }
+}

@@ -29,7 +29,7 @@ const Navbar = () => {
   return (
     <TooltipProvider delayDuration={200}>
 
-      <div className="w-full h-12 flex items-center justify-between px-4 top-0 left-0 z-50 border-b border-foreground">
+      <div className="w-full h-12 flex items-center justify-between px-4 top-0 left-0 z-50 border-b border-sidebar-border">
         <span>NCDAP Bikeability v2.0</span>
 
         <div className="flex items-center gap-3">

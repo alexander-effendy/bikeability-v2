@@ -11,7 +11,7 @@ import { useSetAtom } from "jotai";
 const Footer = () => {
   const setOpenLog = useSetAtom(changelogOpenAtom);
   return (
-    <div className="w-full h-10 px-4 flex items-center justify-end bottom-0 left-0 z-40 border-t border-foreground text-xs">
+    <div className="w-full h-10 px-4 flex items-center justify-end bottom-0 left-0 z-40 border-t border-sidebar-border text-xs">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

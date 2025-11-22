@@ -432,16 +432,8 @@ const Map: React.FC<MapProps> = ({
     >
       {/* Glow wrapper around the actual map */}
       <div
-        className={`relative w-full h-full overflow-hidden transition-shadow duration-2000 ${isRunModelsMode ? "" : "border border-border"
+        className={`relative w-full h-full overflow-hidden transition-shadow duration-2000 ${isRunModelsMode ? "map-glow-cycle" : "border border-border"
           }`}
-        style={
-          isRunModelsMode
-            ? {
-              boxShadow:
-                "0 0 0 2px rgba(52,211,153,0.9), 0 0 25px rgba(16,185,129,0.9)",
-            }
-            : undefined
-        }
       >
         {/* City combobox in top-left */}
         <div className="absolute top-2 left-2 z-10">

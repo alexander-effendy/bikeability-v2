@@ -48,13 +48,13 @@ const TechnicalAccessibility = () => {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="h-10 border-b border-foreground flex items-center p-4">
+      <div className="h-10 border-b border-sidebar-border flex items-center p-4">
         Accessibility
       </div>
 
       <div style={{ height: 'calc(100dvh - 128px)' }} className="p-4 flex flex-col gap-4 overflow-y-auto soft-scrollbar-right">
         {/* Catchment row */}
-        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
+        <Accordion type="single" defaultValue="item-1" className="border border-sidebar-border">
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger
               className="flex justify-between [&>svg]:hidden items-center gap-2"
@@ -66,7 +66,7 @@ const TechnicalAccessibility = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-foreground rounded-none min-w-[110px]"
+                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-sidebar-border rounded-none min-w-[110px]"
                       onClick={(e) => e.stopPropagation()} // don't toggle accordion
                     >
                       <span className="truncate">
@@ -111,7 +111,7 @@ const TechnicalAccessibility = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-foreground rounded-none min-w-20"
+                      className="h-8 px-2 text-xs font-normal justify-between bg-background border border-sidebar-border rounded-none min-w-20"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span>{minsValue} mins</span>
@@ -188,7 +188,7 @@ const TechnicalAccessibility = () => {
         </Accordion>
 
         {/* Meshblock school example – unchanged */}
-        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
+        <Accordion type="single" defaultValue="item-1" className="border border-sidebar-border">
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger
               className="flex justify-between [&>svg]:hidden items-center"

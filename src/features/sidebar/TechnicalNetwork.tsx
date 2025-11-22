@@ -57,7 +57,7 @@ const TechnicalNetworkLayers = () => {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="h-10 border-b border-foreground flex items-center p-4">
+      <div className="h-10 border-b border-sidebar-border flex items-center p-4">
         Network Layers
       </div>
 
@@ -69,7 +69,7 @@ const TechnicalNetworkLayers = () => {
         {/* <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -123,7 +123,7 @@ const TechnicalNetworkLayers = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -178,7 +178,7 @@ const TechnicalNetworkLayers = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -216,7 +216,7 @@ const TechnicalNetworkLayers = () => {
                       variant="outline"
                       role="combobox"
                       aria-expanded={isConnectivityOpen}
-                      className="w-full justify-between h-8 px-2 text-xs border border-foreground rounded-none"
+                      className="w-full justify-between h-8 px-2 text-xs border border-sidebar-border rounded-none"
                     >
                       {selectedConnectivity
                         ? selectedConnectivity.label
