@@ -7,6 +7,7 @@ import './scroll.css'
 import Base from './pages/Base';
 import Login from './pages/Login';
 
+import RequireAuth from "./features/auth/RequireAuth";
 export default function App() {
   return (
     <BrowserRouter>
@@ -18,7 +19,15 @@ export default function App() {
         className='flex flex-col h-dvh overflow-hidden'
       >
         <Routes>
-          <Route path="/" element={<Base />} />
+          
+          <Route
+        path="/"
+        element={
+          <RequireAuth>
+            <Base />
+          </RequireAuth>
+        }
+      />
           <Route path="/login" element={<Login />} />
         </Routes>
       </div>

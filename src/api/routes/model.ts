@@ -1,40 +1,47 @@
-// src/lib/api/model.ts
+// src/api/routes/model.ts
 import { apiClient } from "../lib/client";
-import type { CityId } from "@/atoms/GeneralAtom";
-import type { RoadSegmentType } from "@/atoms/ModelAtom";
 
-/** Payload shape that your FastAPI endpoint expects */
-export type SubmitRoadsPayload = {
-  city: CityId;
-  segment: RoadSegmentType; // "painted" | "separated" | "quiet"
-  roads: {
-    gid: number;
-    name: string;
-    length: number;
-  }[];
+export type SubmittedRoad = { gid: number };
+
+export type BikePathTypePayload = {
+  painted: SubmittedRoad[];
+  quiet: SubmittedRoad[];
+  separated: SubmittedRoad[];
 };
 
-export type RunModelPayload = {
-  // example shape – adapt to your FastAPI schema
-  painted: SubmitRoadsPayload["roads"];
-  separated: SubmitRoadsPayload["roads"];
-  quiet: SubmitRoadsPayload["roads"];
+export type ComputeLengthPayload = {
+  userid: number,
+  location: string,
+  // keycloak: string,
+  bikepathtype: BikePathTypePayload;
 };
 
-export type RunModelResponse = {
-  job_id: string;
-  status: "queued" | "running" | "finished" | "failed";
-  // anything else your FastAPI returns
-};
+// Shape of backend response:
+// backend currently returns df_wide.to_json() → a JSON string.
+// We'll handle both string & object just in case.
+export type ComputeLengthResult = any;
 
-// 🔹 POST /model/submit-roads  (example endpoint)
-export const submitRoadsApi = async (payload: SubmitRoadsPayload) => {
-  const res = await apiClient.post("/model/submit-roads", payload);
+export async function computeLengthFromSegmentFID(
+  payload: ComputeLengthPayload
+): Promise<ComputeLengthResult> {
+  // NOTE: adjust path if your backend uses a /fastapi prefix
+  // e.g. "/fastapi/computeLengthFromSegmentFID/"
+  console.log('paylod is')
+  console.log(payload)
+  const res = await apiClient.post(
+    "/fastapi/computeLengthFromSegmentFID/",
+    payload
+  );
+
+  // If backend returned a JSON string, parse it
+  if (typeof res.data === "string") {
+    try {
+      return JSON.parse(res.data);
+    } catch {
+      // if it's not parseable, just return raw
+      return res.data;
+    }
+  }
+
   return res.data;
-};
-
-// 🔹 POST /model/run
-export const runModelApi = async (payload: RunModelPayload) => {
-  const res = await apiClient.post<RunModelResponse>("/model/run", payload);
-  return res.data;
-};
+}
