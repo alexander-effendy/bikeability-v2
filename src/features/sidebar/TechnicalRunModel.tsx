@@ -13,10 +13,16 @@ import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
 
 import {
+  accessibilityResultAtom,
   clickedRoadsAtom,
   computedRoadsAtom,
+  potentialResultAtom,
+  type PotentialResultData,
+  predictionResultAtom,
+  type PredictionResultData,
   roadSegmentActiveAtom,
   submittedRoadsAtom,
+  type AccessibilityResultData,
   type RoadSegmentType,
   type SubmittedRoadsState,
 } from "@/atoms/ModelAtom";
@@ -48,10 +54,21 @@ const TechnicalRunModel = () => {
   const [computedRoads, setComputedRoads] = useAtom(computedRoadsAtom);
   const activeCity = useAtomValue<CityId>(activeCityAtom);
 
+  const [accessibilityResult, setAccessibilityResult] = useAtom<AccessibilityResultData | null>(accessibilityResultAtom);
+  const [predictionResult, setPredictionResult] = useAtom<PredictionResultData | null>(predictionResultAtom);
+  const [potentialResult, setPotentialResult] = useAtom<PotentialResultData | null>(potentialResultAtom);
+
   useEffect(() => {
-    console.log('computed roads:')
-    console.log(computedRoads)
-  }, [computedRoads])
+    console.log(accessibilityResult);
+  }, [accessibilityResult]);
+
+  useEffect(() => {
+    console.log(predictionResult);
+  }, [predictionResult]);
+
+  useEffect(() => {
+    console.log(potentialResult);
+  }, [potentialResult]);
 
   const toggleLayer = (layerName: string) => {
     if (layerActive === layerName) {
@@ -167,9 +184,9 @@ const TechnicalRunModel = () => {
         calculatePotentialModel(potentialPayload),
       ]);
 
-      console.log("Accessibility result:", accessRes);
-      console.log("Prediction result:", predRes);
-      console.log("Potential result:", potRes);
+      setAccessibilityResult(accessRes);
+      setPredictionResult(predRes);;
+      setPotentialResult(potRes);
 
       // Later: put these into atoms / show in UI
     } catch (err) {
@@ -447,7 +464,7 @@ const TechnicalRunModel = () => {
                   </div>
                   <div className="pt-2">
                     <Button
-                      className="w-full border border-muted rounded-none bg-primary text-foreground hover:bg-primary/90"
+                      className="w-full border border-foreground rounded-none bg-primary text-foreground hover:bg-primary/90"
                       size="sm"
                       onClick={handleRunModels}
                       disabled={computedRoads.length === 0}

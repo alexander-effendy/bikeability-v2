@@ -64,13 +64,6 @@ const TechnicalDensity = () => {
                     />
                     <span>
                       {item.label}
-                      {item.min !== undefined && (
-                        <span className="text-muted-foreground ml-1">
-                          {item.max == null
-                            ? `(${item.min}+ )`
-                            : `(${item.min} – ${item.max})`}
-                        </span>
-                      )}
                     </span>
                   </div>
                 ))}
@@ -118,13 +111,6 @@ const TechnicalDensity = () => {
                     />
                     <span>
                       {item.label}
-                      {item.min !== undefined && (
-                        <span className="text-muted-foreground ml-1">
-                          {item.max == null
-                            ? `(${item.min}+ )`
-                            : `(${item.min} – ${item.max})`}
-                        </span>
-                      )}
                     </span>
                   </div>
                 ))}

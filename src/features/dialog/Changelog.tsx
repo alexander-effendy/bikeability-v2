@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { changelogOpenAtom } from "@/atoms/GeneralAtom";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 export default function ChangeLogModal() {
   const [isOpen, setIsOpen] = useAtom<boolean>(changelogOpenAtom);
@@ -20,12 +21,30 @@ export default function ChangeLogModal() {
           <DialogTitle className="text-2xl font-bold mb-3 text-card-foreground">
             Changelog
           </DialogTitle>
+          <DialogDescription className="text-muted-foreground text-sm mb-4">
+            See what’s changed in the latest versions of the app.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-button-primary">Version 1.0.1</h3>
+            <h3 className="text-lg font-medium text-button-primary">Version 1.0.2</h3>
             <Badge>Latest Release</Badge>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Released on November 22, 2025
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm text-card-foreground">
+            <li>Use HTTPOnly Cookies for Auth</li>
+            <li>Running model works</li>
+          </ul>
+        </div>
+
+        <Separator className="my-6 bg-muted-foreground" />
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-button-primary">Version 1.0.1</h3>
           </div>
           <p className="text-muted-foreground text-sm">
             Released on November 21, 2025

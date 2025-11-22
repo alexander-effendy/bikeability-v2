@@ -47,3 +47,39 @@ export type NormalizedComputeLengthRow = {
 
 // this is what you actually want to store
 export const computedRoadsAtom = atom<NormalizedComputeLengthRow[]>([]);
+
+// ---- result types from backend ----
+
+export type AccessibilityResultData = {
+  jobs: number;
+  population: number;
+  park: number;
+  school: number;
+  service: number;
+  transit: number;
+};
+
+export type ModelOverallSummary = {
+  increased_cycling_participation: number;
+  additional_cyclists_transport: number;
+  additional_cyclists_recreation: number;
+  additional_trips_transport: number;
+  additional_trips_recreation: number;
+};
+
+export type PredictionResultData = {
+  overall: ModelOverallSummary;
+  sa1_code21: string;
+  sa1_inputs: string;
+  sa1_affected: string;
+  sa1_destination: string;
+};
+
+export type PotentialResultData = {
+  overall: ModelOverallSummary;
+  sa1_code21: string;
+};
+
+export const accessibilityResultAtom = atom<AccessibilityResultData | null>(null);
+export const predictionResultAtom = atom<PredictionResultData | null>(null);
+export const potentialResultAtom = atom<PotentialResultData | null>(null);

@@ -108,6 +108,7 @@ import Map3D from "../mapConfigs/map3D";
 import MapShowMasking from "../mapConfigs/mapShowMasking";
 import { ensureCyclistRatioLayer, removeCyclistRatioLayer } from "./layers/currentCyclingConditions/ensureCyclistRatioLayer";
 import { ensurePurposeRatioLayer, removePurposeRatioLayer } from "./layers/currentCyclingConditions/ensurePurposeRatioLayer";
+import MapModelResults from "./MapModelResult";
 
 type Theme = "dark" | "light";
 
@@ -426,7 +427,7 @@ const Map: React.FC<MapProps> = ({
       style={{
         position: "relative",
         width: "100%",
-        height: "100%",
+        height: 'calc(100dvh - 123px)'
       }}
     >
       {/* Glow wrapper around the actual map */}
@@ -461,6 +462,9 @@ const Map: React.FC<MapProps> = ({
             inset: 0,
           }}
         />
+
+        {/* 🔽 New bottom-left results overlay */}
+        <MapModelResults />
       </div>
     </div>
   );

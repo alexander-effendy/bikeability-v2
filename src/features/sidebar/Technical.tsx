@@ -183,7 +183,7 @@ const Technical = () => {
       </TooltipProvider>
 
       {/* RIGHT SIDEBAR CONTENT */}
-      <div className={`${technicalActive === 'run-models' ? 'w-150' : 'w-100'} transition-all duration-2000 border-r border-foreground`}>
+      <div className={`${technicalActive === 'run-models' ? 'w-130' : 'w-100'} transition-all duration-2000 border-r border-foreground`}>
         {technicalActive === "current-cycling-conditions" && (
           <TechnicalCurrentCyclingConditions />
         )}
