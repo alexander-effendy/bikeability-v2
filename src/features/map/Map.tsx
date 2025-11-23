@@ -9,7 +9,10 @@ import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useAtom, useAtomValue } from "jotai";
 import { clickedRoadsAtom, submittedRoadsAtom } from "@/atoms/ModelAtom";
-import { syncSelectedRoadsOnMap, syncSubmittedRoadsOnMap } from "./layers/roadNetworks/ensureRoadNetworkLayer";
+import {
+  syncSelectedRoadsOnMap,
+  syncSubmittedRoadsOnMap,
+} from "./layers/roadNetworks/ensureRoadNetworkLayer";
 
 import {
   darkModeAtom,
@@ -106,8 +109,18 @@ import {
 
 import Map3D from "../mapConfigs/map3D";
 import MapShowMasking from "../mapConfigs/mapShowMasking";
-import { ensureCyclistRatioLayer, removeCyclistRatioLayer } from "./layers/currentCyclingConditions/ensureCyclistRatioLayer";
-import { ensurePurposeRatioLayer, removePurposeRatioLayer } from "./layers/currentCyclingConditions/ensurePurposeRatioLayer";
+import {
+  ensureCyclistRatioLayer,
+  removeCyclistRatioLayer,
+} from "./layers/currentCyclingConditions/ensureCyclistRatioLayer";
+import {
+  ensurePurposeRatioLayer,
+  removePurposeRatioLayer,
+} from "./layers/currentCyclingConditions/ensurePurposeRatioLayer";
+import MapModelResults from "./MapModelResult";
+
+// ⬇️ new LGA search component
+import SearchBar from "../combobox/SearchBar";
 
 type Theme = "dark" | "light";
 
@@ -145,8 +158,10 @@ const Map: React.FC<MapProps> = ({
   const activeCity = useAtomValue<CityId>(activeCityAtom);
   const catchmentType = useAtomValue<string>(catchmentTypeAtom);
   const catchmentMins = useAtomValue<number>(catchmentMinsAtom);
-  const cyclistRatioType = useAtomValue<CyclistRatioType>(cyclistRatioTypeAtom);
-  const purposeRatioType = useAtomValue<PurposeRatioType>(purposeRatioTypeAtom);
+  const cyclistRatioType =
+    useAtomValue<CyclistRatioType>(cyclistRatioTypeAtom);
+  const purposeRatioType =
+    useAtomValue<PurposeRatioType>(purposeRatioTypeAtom);
   const networkIslandLength = useAtomValue(networkIslandLengthAtom);
   const clickedRoadsValue = useAtomValue(clickedRoadsAtom);
   const submittedRoads = useAtomValue(submittedRoadsAtom);
@@ -247,8 +262,51 @@ const Map: React.FC<MapProps> = ({
           break;
       }
     },
-    [activeLayer, activeCity, catchmentType, catchmentMins, cyclistRatioType, purposeRatioType, networkIslandLength]
+    [
+      activeLayer,
+      activeCity,
+      catchmentType,
+      catchmentMins,
+      cyclistRatioType,
+      purposeRatioType,
+      networkIslandLength,
+    ]
   );
+
+  // 🔎 zoom to LGA extents: called by SearchBar
+  const zoomToLgaExtent = useCallback((extents: string) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const parts = extents.split(",").map((v) => Number(v.trim()));
+    if (parts.length !== 4) {
+      console.warn("Invalid LGA extents string:", extents);
+      return;
+    }
+
+    const [minLon, minLat, maxLon, maxLat] = parts;
+
+    if (
+      [minLon, minLat, maxLon, maxLat].some(
+        (v) => Number.isNaN(v) || !Number.isFinite(v)
+      )
+    ) {
+      console.warn("Invalid LGA extents values:", parts);
+      return;
+    }
+
+    map.fitBounds(
+      [
+        [minLon, minLat],
+        [maxLon, maxLat],
+      ],
+      {
+        padding: 40,
+        duration: 900,
+        maxZoom: 13,
+      }
+    );
+  }, []);
 
   // 1️⃣ Init map once
   useEffect(() => {
@@ -426,24 +484,18 @@ const Map: React.FC<MapProps> = ({
       style={{
         position: "relative",
         width: "100%",
-        height: "100%",
+        height: "calc(100dvh - 123px)",
       }}
     >
       {/* Glow wrapper around the actual map */}
       <div
-        className={`relative w-full h-full overflow-hidden transition-shadow duration-2000 ${isRunModelsMode ? "" : "border border-border"
-          }`}
-        style={
-          isRunModelsMode
-            ? {
-              boxShadow:
-                "0 0 0 2px rgba(52,211,153,0.9), 0 0 25px rgba(16,185,129,0.9)",
-            }
-            : undefined
-        }
+        className={`relative w-full h-full overflow-hidden transition-shadow duration-2000 ${
+          isRunModelsMode ? "map-glow-cycle" : "border border-border"
+        }`}
       >
-        {/* City combobox in top-left */}
-        <div className="absolute top-2 left-2 z-10">
+        {/* City combobox + LGA search in top-left */}
+        <div className="absolute top-2 left-2 z-10 space-x-2">
+          <SearchBar onZoomToExtent={zoomToLgaExtent} />
           <CityCombobox />
         </div>
 
@@ -461,6 +513,9 @@ const Map: React.FC<MapProps> = ({
             inset: 0,
           }}
         />
+
+        {/* bottom-right results overlay */}
+        <MapModelResults />
       </div>
     </div>
   );

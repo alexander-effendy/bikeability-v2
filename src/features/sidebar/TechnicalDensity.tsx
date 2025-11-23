@@ -18,12 +18,12 @@ const TechnicalDensity = () => {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="h-10 border-b border-foreground flex items-center p-4">
+      <div className="h-10 border-b border-sidebar-border flex items-center p-4">
         Density
       </div>
 
       <div style={{ height: 'calc(100dvh - 128px)' }} className="p-4 flex flex-col gap-4 overflow-y-auto soft-scrollbar-right">
-        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
+        <Accordion type="single" defaultValue="item-1" className="border border-sidebar-border">
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger
               className="flex justify-between [&>svg]:hidden items-center"
@@ -64,13 +64,6 @@ const TechnicalDensity = () => {
                     />
                     <span>
                       {item.label}
-                      {item.min !== undefined && (
-                        <span className="text-muted-foreground ml-1">
-                          {item.max == null
-                            ? `(${item.min}+ )`
-                            : `(${item.min} – ${item.max})`}
-                        </span>
-                      )}
                     </span>
                   </div>
                 ))}
@@ -79,7 +72,7 @@ const TechnicalDensity = () => {
           </AccordionItem>
         </Accordion>
 
-        <Accordion type="single" defaultValue="item-1" className="border border-foreground">
+        <Accordion type="single" defaultValue="item-1" className="border border-sidebar-border">
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger
               className="flex justify-between [&>svg]:hidden items-center"
@@ -118,13 +111,6 @@ const TechnicalDensity = () => {
                     />
                     <span>
                       {item.label}
-                      {item.min !== undefined && (
-                        <span className="text-muted-foreground ml-1">
-                          {item.max == null
-                            ? `(${item.min}+ )`
-                            : `(${item.min} – ${item.max})`}
-                        </span>
-                      )}
                     </span>
                   </div>
                 ))}

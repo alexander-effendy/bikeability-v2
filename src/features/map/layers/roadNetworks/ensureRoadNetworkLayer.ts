@@ -8,6 +8,7 @@ import {
   submittedRoadsAtom,
   type RoadType,
   type RoadSegmentType,
+  type SubmittedRoadsState,
 } from "@/atoms/ModelAtom";
 
 const store = getDefaultStore();
@@ -17,9 +18,6 @@ const MARTIN_BASE_URL = import.meta.env.VITE_MARTIN_URL;
 // All cities that have *_network_all tiles
 const CITY_LIST: CityId[] = ["sydney", "melbourne", "brisbane", "perth"];
 
-// shape of submittedRoadsAtom
-type SubmittedRoadsState = Record<RoadSegmentType, RoadType[]>;
-
 // Build ids for a given city
 const getIdsForCity = (city: CityId) => {
   const sourceId = `${city}_network_all`;
@@ -27,10 +25,10 @@ const getIdsForCity = (city: CityId) => {
     sourceId,
     visibleLayerId: `${sourceId}-line`,
     hitLayerId: `${sourceId}-hit`,
-    selectedLayerId: `${sourceId}-selected`,   // clicked (step 1) – cyan
-    paintedLayerId: `${sourceId}-painted`,     // submitted painted – blue
+    selectedLayerId: `${sourceId}-selected`, // clicked (step 1) – cyan
+    paintedLayerId: `${sourceId}-painted`, // submitted painted – blue
     separatedLayerId: `${sourceId}-separated`, // submitted separated – green
-    quietLayerId: `${sourceId}-quiet`,         // submitted quiet – pink
+    quietLayerId: `${sourceId}-quiet`, // submitted quiet – pink
   };
 };
 
@@ -83,6 +81,7 @@ export const syncSelectedRoadsOnMap = (
 };
 
 // === 🎨 Submitted roads (painted / separated / quiet) =====
+// NOTE: submittedRoadsAtom now stores { gid } only, per segment type.
 
 const updateSubmittedRoadFiltersForCity = (
   map: maplibregl.Map,
@@ -91,15 +90,10 @@ const updateSubmittedRoadFiltersForCity = (
 ) => {
   const { paintedLayerId, separatedLayerId, quietLayerId } = getIdsForCity(city);
 
-  const paintedGids = submitted.painted
-    .filter((r) => r.city === city)
-    .map((r) => r.gid);
-  const separatedGids = submitted.separated
-    .filter((r) => r.city === city)
-    .map((r) => r.gid);
-  const quietGids = submitted.quiet
-    .filter((r) => r.city === city)
-    .map((r) => r.gid);
+  // Each entry is now just { gid }, no city field
+  const paintedGids = submitted.painted.map((r) => r.gid);
+  const separatedGids = submitted.separated.map((r) => r.gid);
+  const quietGids = submitted.quiet.map((r) => r.gid);
 
   if (map.getLayer(paintedLayerId)) {
     map.setFilter(paintedLayerId, buildGidFilter(paintedGids));
@@ -348,27 +342,23 @@ export const ensureRoadNetworkLayer = (map: maplibregl.Map, city: CityId) => {
       const { hitLayerId: hitId } = getIdsForCity(c);
 
       // Hover tooltip uses HIT layer
-      map.on(
-        "mousemove",
-        hitId,
-        (e: MapLayerMouseEvent) => {
-          const feature = e.features?.[0];
-          if (!feature) return;
+      map.on("mousemove", hitId, (e: MapLayerMouseEvent) => {
+        const feature = e.features?.[0];
+        if (!feature) return;
 
-          const props = feature.properties ?? {};
-          const name =
-            (props["name"] as string | undefined)?.trim() || "Unnamed road";
+        const props = feature.properties ?? {};
+        const name =
+          (props["name"] as string | undefined)?.trim() || "Unnamed road";
 
-          hoverEl!.innerHTML = `<div>${name}</div>`;
+        hoverEl!.innerHTML = `<div>${name}</div>`;
 
-          const { x, y } = e.point;
-          hoverEl!.style.left = `${x + 10}px`;
-          hoverEl!.style.top = `${y + 10}px`;
-          hoverEl!.style.display = "block";
+        const { x, y } = e.point;
+        hoverEl!.style.left = `${x + 10}px`;
+        hoverEl!.style.top = `${y + 10}px`;
+        hoverEl!.style.display = "block";
 
-          map.getCanvas().style.cursor = "pointer";
-        }
-      );
+        map.getCanvas().style.cursor = "pointer";
+      });
 
       map.on("mouseleave", hitId, () => {
         hoverEl!.style.display = "none";
@@ -397,7 +387,7 @@ export const ensureRoadNetworkLayer = (map: maplibregl.Map, city: CityId) => {
         const name =
           (props["name"] as string | undefined)?.trim() || "Unnamed road";
 
-        // 🔵 length – from feature.length or properties.length
+        // length – from feature.length or properties.length
         const lengthRaw =
           (feature as any).length ?? props["length"] ?? props["len"];
         const length =

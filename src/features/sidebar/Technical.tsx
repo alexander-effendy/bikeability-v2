@@ -50,7 +50,7 @@ const Technical = () => {
     <div className="flex flex-1 overflow-hidden">
       {/* LEFT ICONS BAR */}
       <TooltipProvider delayDuration={200}>
-        <div className="h-full flex flex-col justify-between border-r border-foreground p-1.5">
+        <div className="h-full flex flex-col justify-between border-r border-sidebar-border p-1.5">
           <div className="w-10 flex flex-col items-center gap-2 py-2 shrink-0">
             {/* Cycling Conditions */}
             <Tooltip>
@@ -183,7 +183,7 @@ const Technical = () => {
       </TooltipProvider>
 
       {/* RIGHT SIDEBAR CONTENT */}
-      <div className={`${technicalActive === 'run-models' ? 'w-150' : 'w-100'} transition-all duration-2000 border-r border-foreground`}>
+      <div className={`${technicalActive === 'run-models' ? 'w-120' : 'w-100'} transition-all duration-2000 border-r border-sidebar-border`}>
         {technicalActive === "current-cycling-conditions" && (
           <TechnicalCurrentCyclingConditions />
         )}
@@ -197,7 +197,7 @@ const Technical = () => {
 
       {/* MAP AREA */}
       <div className="flex-1 overflow-hidden p-4">
-        <MapComponent className="border border-foreground" />
+        <MapComponent className="border border-sidebar-border" />
       </div>
     </div>
   );

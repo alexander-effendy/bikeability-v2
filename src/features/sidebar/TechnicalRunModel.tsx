@@ -7,16 +7,21 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { useAtom, useAtomValue } from "jotai";
-import { Eye, EyeOff, Info, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Trash2, Loader2 } from "lucide-react";
 import { ROAD_NETWORK_LINE_LEGEND } from "../map/layers/roadNetworks/ensureRoadNetworkLayer";
 import { Button } from "@/components/ui/button";
-// import { Badge } from "@/components/ui/badge";
 
 import {
+  accessibilityResultAtom,
   clickedRoadsAtom,
   computedRoadsAtom,
+  potentialResultAtom,
+  type PotentialResultData,
+  predictionResultAtom,
+  type PredictionResultData,
   roadSegmentActiveAtom,
   submittedRoadsAtom,
+  type AccessibilityResultData,
   type RoadSegmentType,
   type SubmittedRoadsState,
 } from "@/atoms/ModelAtom";
@@ -28,7 +33,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   computeLengthFromSegmentFID,
@@ -40,18 +45,48 @@ import {
 import { activeCityAtom, type CityId } from "@/atoms/GeneralAtom";
 import { normaliseResponse } from "@/lib/modelHelper";
 
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+
 const TechnicalRunModel = () => {
   const [layerActive, setLayerActive] = useAtom<string | null>(activeLayerAtom);
   const [roads, setRoads] = useAtom(clickedRoadsAtom);
   const [segment, setSegment] = useAtom<RoadSegmentType>(roadSegmentActiveAtom);
-  const [submitted, setSubmitted] = useAtom<SubmittedRoadsState>(submittedRoadsAtom);
+  const [submitted, setSubmitted] =
+    useAtom<SubmittedRoadsState>(submittedRoadsAtom);
   const [computedRoads, setComputedRoads] = useAtom(computedRoadsAtom);
   const activeCity = useAtomValue<CityId>(activeCityAtom);
 
+  const [accessibilityResult, setAccessibilityResult] =
+    useAtom<AccessibilityResultData | null>(accessibilityResultAtom);
+  const [predictionResult, setPredictionResult] =
+    useAtom<PredictionResultData | null>(predictionResultAtom);
+  const [potentialResult, setPotentialResult] =
+    useAtom<PotentialResultData | null>(potentialResultAtom);
+
+  const [isRunning, setIsRunning] = useState(false);
+
   useEffect(() => {
-    console.log('computed roads:')
-    console.log(computedRoads)
-  }, [computedRoads])
+    console.log(accessibilityResult);
+  }, [accessibilityResult]);
+
+  useEffect(() => {
+    console.log(predictionResult);
+  }, [predictionResult]);
+
+  useEffect(() => {
+    console.log(potentialResult);
+  }, [potentialResult]);
+
+  useEffect(() => {
+    console.log(submitted);
+  }, [submitted]);
 
   const toggleLayer = (layerName: string) => {
     if (layerActive === layerName) {
@@ -95,15 +130,13 @@ const TechnicalRunModel = () => {
     try {
       const result = await computeLengthFromSegmentFID({
         userid: 1,
-        // keycloak: 'shndn',
         location: activeCity,
         bikepathtype,
       });
 
       const res = normaliseResponse(result);
-      console.log(res)
+      console.log(res);
       setComputedRoads(res);
-
     } catch (error) {
       console.error("Failed to compute length", error);
       // maybe toast / UI error handling here
@@ -118,6 +151,8 @@ const TechnicalRunModel = () => {
       console.warn("No computed roads to run models on.");
       return;
     }
+
+    setIsRunning(true);
 
     // Build "changes" payload in the format expected by the backend
     const changes = computedRoads.reduce(
@@ -150,7 +185,7 @@ const TechnicalRunModel = () => {
       modelyear: "2025",
       scenarios: "perceptions1%",
       changes,
-    }
+    };
 
     const potentialPayload = {
       userid: 1,
@@ -158,7 +193,7 @@ const TechnicalRunModel = () => {
       modelyear: "2025",
       scenarios: "cbd_perceptions",
       changes,
-    }
+    };
 
     try {
       const [accessRes, predRes, potRes] = await Promise.all([
@@ -167,23 +202,48 @@ const TechnicalRunModel = () => {
         calculatePotentialModel(potentialPayload),
       ]);
 
-      console.log("Accessibility result:", accessRes);
-      console.log("Prediction result:", predRes);
-      console.log("Potential result:", potRes);
-
-      // Later: put these into atoms / show in UI
+      setAccessibilityResult(accessRes);
+      setPredictionResult(predRes);
+      setPotentialResult(potRes);
     } catch (err) {
       console.error("Failed to run models", err);
+    } finally {
+      setIsRunning(false);
     }
+  };
+
+  const handleClearAll = () => {
+    // Clear clicked roads
+    setRoads([]);
+
+    // Reset submitted roads
+    setSubmitted({
+      painted: [],
+      separated: [],
+      quiet: [],
+    });
+
+    // Clear computed roads
+    setComputedRoads([]);
+
+    // Clear model results
+    setAccessibilityResult(null);
+    setPredictionResult(null);
+    setPotentialResult(null);
   };
 
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="h-10 border-b border-foreground flex items-center justify-between p-4">
+      <div className="h-10 border-b border-sidebar-border flex items-center justify-between p-4">
         <span>Run Model</span>
-        <Button size="icon" variant="outline">
-          <Info className="h-4 w-4" />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-5.5 px-3 text-xs"
+          onClick={handleClearAll}
+        >
+          Clear all
         </Button>
       </div>
 
@@ -195,7 +255,7 @@ const TechnicalRunModel = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
@@ -245,16 +305,16 @@ const TechnicalRunModel = () => {
           </AccordionItem>
         </Accordion>
 
-        {/* Selected roads + segment selection (UNCHANGED STYLING) */}
+        {/* Selected roads + segment selection */}
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
               <div className="flex items-center gap-2">
-                <span>1. Select Roads</span>
+                <span>Select Roads</span>
               </div>
             </AccordionTrigger>
 
@@ -272,31 +332,41 @@ const TechnicalRunModel = () => {
                 </p>
               ) : (
                 <div className="border rounded-md overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr>
-                        <th className="px-2 py-1 text-left w-10">#</th>
-                        <th className="px-2 py-1 text-left">Name</th>
-                        <th className="px-2 py-1 text-left w-20">GID</th>
-                        <th className="px-2 py-1 text-right w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="w-full text-xs">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="px-2 py-1 text-left w-10">
+                          #
+                        </TableHead>
+                        <TableHead className="px-2 py-1 text-left">
+                          Name
+                        </TableHead>
+                        <TableHead className="px-2 py-1 text-left w-20">
+                          GID
+                        </TableHead>
+                        <TableHead className="px-2 py-1 text-right w-10" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {roads.map((road, idx) => (
-                        <tr
+                        <TableRow
                           key={`${road.city}-${road.gid}-${idx}`}
                           className="border-t"
                         >
-                          <td className="px-2 py-1 align-top">{idx + 1}</td>
-                          <td className="px-2 py-1 align-top">
+                          <TableCell className="px-2 py-1 align-top">
+                            {idx + 1}
+                          </TableCell>
+                          <TableCell className="px-2 py-1 align-top">
                             {road.name || (
                               <span className="italic text-muted-foreground">
                                 Unnamed road
                               </span>
                             )}
-                          </td>
-                          <td className="px-2 py-1 align-top">{road.gid}</td>
-                          <td className="px-2 py-1 align-top text-right">
+                          </TableCell>
+                          <TableCell className="px-2 py-1 align-top">
+                            {road.gid}
+                          </TableCell>
+                          <TableCell className="px-2 py-1 align-top text-right">
                             <Button
                               size="icon"
                               variant="ghost"
@@ -307,11 +377,11 @@ const TechnicalRunModel = () => {
                             >
                               <Trash2 className="h-3 w-3 text-red-400" />
                             </Button>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
 
@@ -322,9 +392,11 @@ const TechnicalRunModel = () => {
                   </div>
                   <Select
                     value={segment}
-                    onValueChange={(value) => setSegment(value as RoadSegmentType)}
+                    onValueChange={(value) =>
+                      setSegment(value as RoadSegmentType)
+                    }
                   >
-                    <SelectTrigger className="h-8 text-xs w-full border border-foreground rounded-none shadow-none">
+                    <SelectTrigger className="h-8 text-xs w-full border border-sidebar-border rounded-none shadow-none">
                       <SelectValue placeholder="Choose segment type" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
@@ -339,7 +411,7 @@ const TechnicalRunModel = () => {
               {roads.length > 0 && (
                 <div>
                   <Button
-                    className="w-full border border-foreground rounded-none bg-accent-foreground text-background hover:bg-accent-foreground/90"
+                    className="w-full border border-sidebar-border rounded-none bg-accent-foreground text-background hover:bg-accent-foreground/90"
                     size="sm"
                     disabled={roads.length === 0}
                     onClick={handleSubmit}
@@ -356,12 +428,12 @@ const TechnicalRunModel = () => {
         <Accordion
           type="single"
           defaultValue="item-1"
-          className="border border-foreground"
+          className="border border-sidebar-border"
         >
           <AccordionItem value="item-1" className="p-4">
             <AccordionTrigger className="flex justify-between [&>svg]:hidden items-center">
               <div className="flex items-center gap-2">
-                <span>2. Computed Road Lengths</span>
+                <span>Computed Road Lengths</span>
               </div>
             </AccordionTrigger>
 
@@ -412,47 +484,54 @@ const TechnicalRunModel = () => {
 
                   {/* Table */}
                   <div className="border rounded-md overflow-hidden">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="bg-background/60">
-                          <th className="px-2 py-1 text-left w-10">#</th>
-                          <th className="px-2 py-1 text-left">SA1 code</th>
-                          <th className="px-2 py-1 text-right">Painted (m)</th>
-                          <th className="px-2 py-1 text-right">
+                    <Table className="w-full text-xs">
+                      <TableHeader>
+                        <TableRow className="bg-background/60">
+                          <TableHead className="px-2 py-1 text-left">
+                            SA1 code
+                          </TableHead>
+                          <TableHead className="px-2 py-1 text-right">
+                            Painted (m)
+                          </TableHead>
+                          <TableHead className="px-2 py-1 text-right">
                             Separated (m)
-                          </th>
-                          <th className="px-2 py-1 text-right">Quiet (m)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {computedRoads.map((row, idx) => (
-                          <tr key={row.sa1_code21} className="border-t">
-                            <td className="px-2 py-1 align-top">{idx + 1}</td>
-                            <td className="px-2 py-1 align-top">
+                          </TableHead>
+                          <TableHead className="px-2 py-1 text-right">
+                            Quiet (m)
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {computedRoads.map((row) => (
+                          <TableRow key={row.sa1_code21} className="border-t">
+                            <TableCell className="px-2 py-1 align-top">
                               {row.sa1_code21}
-                            </td>
-                            <td className="px-2 py-1 align-top text-right">
+                            </TableCell>
+                            <TableCell className="px-2 py-1 align-top text-right">
                               {row.painted.toFixed(1)}
-                            </td>
-                            <td className="px-2 py-1 align-top text-right">
+                            </TableCell>
+                            <TableCell className="px-2 py-1 align-top text-right">
                               {row.separated.toFixed(1)}
-                            </td>
-                            <td className="px-2 py-1 align-top text-right">
+                            </TableCell>
+                            <TableCell className="px-2 py-1 align-top text-right">
                               {row.quiet.toFixed(1)}
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                   <div className="pt-2">
                     <Button
-                      className="w-full border border-muted rounded-none bg-primary text-foreground hover:bg-primary/90"
+                      className="w-full border border-sidebar-border rounded-none bg-primary text-foreground hover:bg-primary/90"
                       size="sm"
                       onClick={handleRunModels}
-                      disabled={computedRoads.length === 0}
+                      disabled={computedRoads.length === 0 || isRunning}
                     >
-                      Run model
+                      {isRunning && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      {isRunning ? "Running..." : "Run model"}
                     </Button>
                   </div>
                 </>
