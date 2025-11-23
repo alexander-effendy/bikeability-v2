@@ -13,22 +13,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <div
-        // style={{
-        //   fontFamily:
-        //     "Space Mono, Inconsolata, Menlo, Monaco, Consolas, 'Courier New', Courier, monospace",
-        // }}
         className='flex flex-col h-dvh overflow-hidden'
       >
         <Routes>
-          
           <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <Base />
-          </RequireAuth>
-        }
-      />
+            path="/"
+            element={
+              <RequireAuth>
+                <Base />
+              </RequireAuth>
+            }
+          />
           <Route path="/login" element={<Login />} />
         </Routes>
       </div>

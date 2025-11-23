@@ -39,7 +39,7 @@ const CityCombobox: React.FC = () => {
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "w-64 justify-between bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm border border-sidebar-border",
+            "w-40 justify-between bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm border border-sidebar-border",
             "rounded-none"
           )}
         >
@@ -49,7 +49,7 @@ const CityCombobox: React.FC = () => {
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-0 rounded-none border border-sidebar-border">
+      <PopoverContent className="w-40 p-0 rounded-none border border-sidebar-border">
         <Command>
           <CommandGroup>
             {CITY_OPTIONS.map((option) => (

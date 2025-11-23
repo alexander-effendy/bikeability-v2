@@ -131,7 +131,6 @@ export async function calculateAccessibility(
     payload
   );
 
-  // Return only the inner "data" so components don’t deal with envelopes
   return res.data.data;
 }
 
